@@ -34,7 +34,6 @@ REQUIRED_APP = {
     "Daily tokens across the selected range": "所选范围内每日 Token 用量",
     "No activity in selected range": "所选范围内暂无活动",
     "%d active days · peak %@ tok": "%d 个活跃日 · 峰值 %@ tok",
-    "Sessions": "会话",
     "Total Tokens": "总 Token",
     "Input": "输入",
     "Output": "输出",
@@ -80,15 +79,17 @@ ENTRY_RE = re.compile(r'"((?:[^"\\\\]|\\\\.)*)"\s*=\s*"((?:[^"\\\\]|\\\\.)*)"\s*
 
 
 def load_strings(path: Path) -> dict[str, str]:
-    if not path.exists():
-        raise AssertionError(f"missing strings file: {path.relative_to(ROOT)}")
     data = path.read_text(encoding="utf-8")
     return {key: value for key, value in ENTRY_RE.findall(data)}
 
 
 def check(path: Path, required: dict[str, str]) -> list[str]:
-    entries = load_strings(path)
     errors: list[str] = []
+    if not path.exists():
+        errors.append(f"missing strings file: {path.relative_to(ROOT)}")
+        return errors
+
+    entries = load_strings(path)
     for key, expected in required.items():
         actual = entries.get(key)
         if actual is None:
