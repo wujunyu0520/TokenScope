@@ -40,12 +40,12 @@
 "Monthly Usage" = "月度用量";
 "No usage in selected range" = "所选范围内暂无用量";
 "Activity Heatmap" = "活跃度热力图";
-"Daily tokens across the selected range" = "所选范围内每日 Token 用量";
+"Daily tokens across the selected range" = "所选范围内每日 Token 用量（单位：亿）";
 "No activity in selected range" = "所选范围内暂无活动";
-"%d active days · peak %@ tok" = "%d 个活跃日 · 峰值 %@ tok";
-"%@ tok · $%@" = "%@ tok · $%@";
-"%@ · %@ tok · $%@" = "%@ · %@ tok · $%@";
-"%@\n%@ tok\n$%@" = "%@\n%@ tok\n$%@";
+"%d active days · peak %@" = "%d 个活跃日 · 峰值 %@";
+"%@ · $%@" = "%@ · $%@";
+"%@ · %@ · $%@" = "%@ · %@ · $%@";
+"%@\n%@\n$%@" = "%@\n%@\n$%@";
 "%d msgs" = "%d 条消息";
 "All" = "全部";
 "Today" = "今天";
@@ -63,7 +63,7 @@
 "To" = "结束";
 "Quick" = "快捷";
 "Day" = "日期";
-"Tokens" = "Token";
+"Tokens" = "Token（亿）";
 "Less" = "较少";
 "More" = "较多";
 "Total Tokens" = "总 Token";

@@ -304,6 +304,10 @@ private struct UsageWindowRow: View {
 
     private var usageText: String? {
         guard let used = window.usedValue, let limit = window.limitValue, limit > 0 else { return nil }
+        if window.unitLabel == "tokens" {
+            return "\(TokenDisplayFormatter.hundredMillions(used)) / \(TokenDisplayFormatter.hundredMillions(limit))"
+        }
+
         let usedStr = formatCount(used)
         let limitStr = formatCount(limit)
         if let unit = window.unitLabel, !unit.isEmpty {

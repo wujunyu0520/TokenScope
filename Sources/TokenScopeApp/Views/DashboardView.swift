@@ -171,10 +171,10 @@ struct DashboardView: View {
     private var headerStats: some View {
         HStack(spacing: 16) {
             StatCard(title: L10n.string("Sessions"), value: "\(store.sessions.count)")
-            StatCard(title: L10n.string("Total Tokens"), value: formatMillions(totals.usage.totalTokens))
-            StatCard(title: L10n.string("Input"), value: formatMillions(totals.usage.inputTokens))
-            StatCard(title: L10n.string("Output"), value: formatMillions(totals.usage.outputTokens))
-            StatCard(title: L10n.string("Cache R"), value: formatMillions(totals.usage.cacheReadTokens))
+            StatCard(title: L10n.string("Total Tokens"), value: formatTokenAmount(totals.usage.totalTokens))
+            StatCard(title: L10n.string("Input"), value: formatTokenAmount(totals.usage.inputTokens))
+            StatCard(title: L10n.string("Output"), value: formatTokenAmount(totals.usage.outputTokens))
+            StatCard(title: L10n.string("Cache R"), value: formatTokenAmount(totals.usage.cacheReadTokens))
             StatCard(title: L10n.string("Cost (est.)"), value: String(format: "$%.2f", totals.costUSD))
         }
     }
@@ -420,7 +420,7 @@ private struct ChartContent: View {
                 AxisTick()
                 AxisValueLabel {
                     if let n = value.as(Int.self) {
-                        Text(formatMillions(n)).monospacedDigit()
+                        Text(formatTokenAmount(n)).monospacedDigit()
                     }
                 }
             }
@@ -473,12 +473,8 @@ private enum DatePreset: CaseIterable {
     }
 }
 
-private func formatMillions(_ n: Int) -> String {
-    if n == 0 { return "0" }
-    let v = Double(n) / 1_000_000
-    if abs(v) >= 100 { return String(format: "%.0fM", v) }
-    if abs(v) >= 10 { return String(format: "%.1fM", v) }
-    return String(format: "%.2fM", v)
+private func formatTokenAmount(_ n: Int) -> String {
+    TokenDisplayFormatter.hundredMillions(n)
 }
 
 private struct TooltipView: View {
@@ -497,7 +493,7 @@ private struct TooltipView: View {
                     Circle().fill(palette[b.model] ?? .accentColor).frame(width: 8, height: 8)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(b.model).font(.caption)
-                        Text(L10n.string("%@ tok · $%@", formatMillions(formatTokens(b.usage)), String(format: "%.4f", b.costUSD)))
+                        Text(L10n.string("%@ · $%@", formatTokenAmount(formatTokens(b.usage)), String(format: "%.4f", b.costUSD)))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -690,16 +686,16 @@ private struct ActivityHeatmapSection: View {
     private var statusText: String {
         if let hoveredCell, hoveredCell.isInSelectedRange {
             return L10n.string(
-                "%@ · %@ tok · $%@",
+                "%@ · %@ · $%@",
                 hoveredCell.day.formatted(date: .abbreviated, time: .omitted),
-                formatMillions(hoveredCell.tokens),
+                formatTokenAmount(hoveredCell.tokens),
                 String(format: "%.2f", hoveredCell.costUSD)
             )
         }
         if model.activeDayCount == 0 {
             return L10n.string("No activity in selected range")
         }
-        return L10n.string("%d active days · peak %@ tok", model.activeDayCount, formatMillions(model.peakTokens))
+        return L10n.string("%d active days · peak %@", model.activeDayCount, formatTokenAmount(model.peakTokens))
     }
 
     private func borderColor(for cell: HeatmapCell) -> Color {
@@ -826,9 +822,9 @@ private struct HeatmapRenderModel {
             let tooltip: String
             if cell.isInSelectedRange {
                 tooltip = L10n.string(
-                    "%@\n%@ tok\n$%@",
+                    "%@\n%@\n$%@",
                     cell.day.formatted(date: .abbreviated, time: .omitted),
-                    formatMillions(cell.tokens),
+                    formatTokenAmount(cell.tokens),
                     String(format: "%.2f", cell.costUSD)
                 )
             } else {
@@ -920,7 +916,7 @@ private struct MonthlyBucketCard: View {
                         .font(.headline)
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text(formatMillions(displayedTokens(bucket.usage)))
+                        Text(formatTokenAmount(displayedTokens(bucket.usage)))
                             .font(.body).monospacedDigit()
                         Text("$\(String(format: "%.2f", bucket.costUSD)) · \(L10n.string("%d msgs", bucket.messageCount))")
                             .font(.caption)
@@ -964,7 +960,7 @@ private struct MonthlyDayRow: View {
                 .font(.subheadline)
                 .frame(width: 80, alignment: .leading)
             Spacer()
-            Text(formatMillions(displayedTokens(bucket.usage)))
+            Text(formatTokenAmount(displayedTokens(bucket.usage)))
                 .font(.subheadline)
                 .monospacedDigit()
                 .frame(width: 90, alignment: .trailing)
@@ -1050,7 +1046,7 @@ private struct SourceCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title).font(.caption).foregroundStyle(.secondary)
                     HStack(spacing: 8) {
-                        Text(formatMillions(tokens)).font(.callout).monospacedDigit()
+                        Text(formatTokenAmount(tokens)).font(.callout).monospacedDigit()
                         Text(String(format: "$%.2f", cost))
                             .font(.caption2)
                             .foregroundStyle(.secondary)

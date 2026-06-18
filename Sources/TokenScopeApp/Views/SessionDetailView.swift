@@ -37,7 +37,7 @@ struct SessionDetailView: View {
                     .foregroundStyle(.secondary)
                     HStack(spacing: 16) {
                         Label("\(detail.session.messageCount)", systemImage: "text.bubble")
-                        Label(formatMillions(detail.session.totalUsage.totalTokens), systemImage: "number")
+                        Label(formatTokenAmount(detail.session.totalUsage.totalTokens), systemImage: "number")
                         Text(String(format: "$%.4f", store.priceBook.cost(for: detail.session.totalUsage, model: detail.session.modelsUsed.first ?? "")))
                             .monospacedDigit()
                     }
@@ -71,16 +71,16 @@ struct SessionDetailView: View {
                     Text(record.model)
                 }
                 TableColumn(L10n.string("Input")) { record in
-                    Text(formatMillions(record.usage.inputTokens)).monospacedDigit()
+                    Text(formatTokenAmount(record.usage.inputTokens)).monospacedDigit()
                 }
                 TableColumn(L10n.string("Output")) { record in
-                    Text(formatMillions(record.usage.outputTokens)).monospacedDigit()
+                    Text(formatTokenAmount(record.usage.outputTokens)).monospacedDigit()
                 }
                 TableColumn(L10n.string("Cache R")) { record in
-                    Text(formatMillions(record.usage.cacheReadTokens)).monospacedDigit()
+                    Text(formatTokenAmount(record.usage.cacheReadTokens)).monospacedDigit()
                 }
                 TableColumn(L10n.string("Cache W")) { record in
-                    Text(formatMillions(record.usage.cacheCreationTokens)).monospacedDigit()
+                    Text(formatTokenAmount(record.usage.cacheCreationTokens)).monospacedDigit()
                 }
             }
         }
@@ -113,13 +113,13 @@ private struct SessionMessageCard: View {
             }
             if message.usage.totalTokens > 0 {
                 HStack(spacing: 12) {
-                    Text(L10n.string("Input %@", formatMillions(message.usage.inputTokens)))
-                    Text(L10n.string("Output %@", formatMillions(message.usage.outputTokens)))
+                    Text(L10n.string("Input %@", formatTokenAmount(message.usage.inputTokens)))
+                    Text(L10n.string("Output %@", formatTokenAmount(message.usage.outputTokens)))
                     if message.usage.cacheReadTokens > 0 {
-                        Text(L10n.string("Cache R %@", formatMillions(message.usage.cacheReadTokens)))
+                        Text(L10n.string("Cache R %@", formatTokenAmount(message.usage.cacheReadTokens)))
                     }
                     if message.usage.cacheCreationTokens > 0 {
-                        Text(L10n.string("Cache W %@", formatMillions(message.usage.cacheCreationTokens)))
+                        Text(L10n.string("Cache W %@", formatTokenAmount(message.usage.cacheCreationTokens)))
                     }
                 }
                 .font(.caption)
@@ -133,10 +133,6 @@ private struct SessionMessageCard: View {
     }
 }
 
-private func formatMillions(_ n: Int) -> String {
-    if n == 0 { return "0" }
-    let v = Double(n) / 1_000_000
-    if abs(v) >= 100 { return String(format: "%.0fM", v) }
-    if abs(v) >= 10 { return String(format: "%.1fM", v) }
-    return String(format: "%.2fM", v)
+private func formatTokenAmount(_ n: Int) -> String {
+    TokenDisplayFormatter.hundredMillions(n)
 }

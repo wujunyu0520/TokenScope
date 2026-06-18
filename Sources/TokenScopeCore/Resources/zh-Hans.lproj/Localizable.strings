@@ -34,7 +34,7 @@
 "OpenCode currently exposes summaries, usage, and errors rather than full transcript text." = "OpenCode 当前提供摘要、用量和错误信息，暂不提供完整转写文本。";
 "Today" = "今天";
 "Last 30 days" = "最近 30 天";
-"%@ tokens" = "%@ tokens";
+"%@ tokens" = "%@";
 "Session" = "会话";
 "Weekly" = "每周";
 "Credits: Unlimited" = "Credits：无限";

@@ -75,19 +75,19 @@ struct SessionsView: View {
                     .onTapGesture(count: 2) { openDetail(for: r) }
             }
             TableColumn(L10n.string("Input"), value: \.inputTokens) { r in
-                Text(formatMillions(r.inputTokens))
+                Text(formatTokenAmount(r.inputTokens))
                     .monospacedDigit()
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { openDetail(for: r) }
             }
             TableColumn(L10n.string("Output"), value: \.outputTokens) { r in
-                Text(formatMillions(r.outputTokens))
+                Text(formatTokenAmount(r.outputTokens))
                     .monospacedDigit()
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { openDetail(for: r) }
             }
             TableColumn(L10n.string("Cache R"), value: \.cacheReadTokens) { r in
-                Text(formatMillions(r.cacheReadTokens))
+                Text(formatTokenAmount(r.cacheReadTokens))
                     .monospacedDigit()
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { openDetail(for: r) }
@@ -178,10 +178,6 @@ struct SessionsView: View {
     }
 }
 
-private func formatMillions(_ n: Int) -> String {
-    if n == 0 { return "0" }
-    let v = Double(n) / 1_000_000
-    if abs(v) >= 100 { return String(format: "%.0fM", v) }
-    if abs(v) >= 10 { return String(format: "%.1fM", v) }
-    return String(format: "%.2fM", v)
+private func formatTokenAmount(_ n: Int) -> String {
+    TokenDisplayFormatter.hundredMillions(n)
 }
