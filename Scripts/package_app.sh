@@ -40,6 +40,17 @@ verify_strict_codesign() {
 
 cd "$ROOT"
 
+APP_OUTPUT_DIR="${APP_OUTPUT_DIR:-$ROOT}"
+mkdir -p "$APP_OUTPUT_DIR"
+APP_OUTPUT_DIR="$(cd "$APP_OUTPUT_DIR" && pwd)"
+APP_DIR="$APP_OUTPUT_DIR/$APP_NAME.app"
+
+case "$APP_OUTPUT_DIR" in
+    "$ROOT"|"$ROOT"/*)
+        echo "warning: app output is under the project root; synced folders may reattach FileProvider/FinderInfo metadata. For release packaging, use APP_OUTPUT_DIR=/tmp/tokenscope-package." >&2
+        ;;
+esac
+
 echo "==> swift build ($CONFIG)"
 swift build -c "$CONFIG"
 
@@ -49,7 +60,6 @@ if [ ! -x "$BUILT_BIN" ]; then
     exit 1
 fi
 
-APP_DIR="$ROOT/$APP_NAME.app"
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS"
 mkdir -p "$APP_DIR/Contents/Resources"
