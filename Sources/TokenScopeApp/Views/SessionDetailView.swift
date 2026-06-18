@@ -45,7 +45,7 @@ struct SessionDetailView: View {
                     .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("Close") { dismiss() }
+                Button(L10n.string("Close")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
             }
         }
@@ -64,22 +64,22 @@ struct SessionDetailView: View {
             }
         case .usageOnly:
             Table(detail.usageRecords) {
-                TableColumn("Time") { record in
+                TableColumn(L10n.string("Time")) { record in
                     Text(record.timestamp.formatted(date: .abbreviated, time: .shortened)).monospacedDigit()
                 }
-                TableColumn("Model") { record in
+                TableColumn(L10n.string("Model")) { record in
                     Text(record.model)
                 }
-                TableColumn("Input") { record in
+                TableColumn(L10n.string("Input")) { record in
                     Text(formatMillions(record.usage.inputTokens)).monospacedDigit()
                 }
-                TableColumn("Output") { record in
+                TableColumn(L10n.string("Output")) { record in
                     Text(formatMillions(record.usage.outputTokens)).monospacedDigit()
                 }
-                TableColumn("Cache R") { record in
+                TableColumn(L10n.string("Cache R")) { record in
                     Text(formatMillions(record.usage.cacheReadTokens)).monospacedDigit()
                 }
-                TableColumn("Cache W") { record in
+                TableColumn(L10n.string("Cache W")) { record in
                     Text(formatMillions(record.usage.cacheCreationTokens)).monospacedDigit()
                 }
             }
@@ -113,13 +113,13 @@ private struct SessionMessageCard: View {
             }
             if message.usage.totalTokens > 0 {
                 HStack(spacing: 12) {
-                    Text("In \(formatMillions(message.usage.inputTokens))")
-                    Text("Out \(formatMillions(message.usage.outputTokens))")
+                    Text(L10n.string("Input %@", formatMillions(message.usage.inputTokens)))
+                    Text(L10n.string("Output %@", formatMillions(message.usage.outputTokens)))
                     if message.usage.cacheReadTokens > 0 {
-                        Text("Cache R \(formatMillions(message.usage.cacheReadTokens))")
+                        Text(L10n.string("Cache R %@", formatMillions(message.usage.cacheReadTokens)))
                     }
                     if message.usage.cacheCreationTokens > 0 {
-                        Text("Cache W \(formatMillions(message.usage.cacheCreationTokens))")
+                        Text(L10n.string("Cache W %@", formatMillions(message.usage.cacheCreationTokens)))
                     }
                 }
                 .font(.caption)
