@@ -8,6 +8,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 APP_STRINGS = ROOT / "Sources/TokenScopeApp/Resources/zh-Hans.lproj/Localizable.strings"
 CORE_STRINGS = ROOT / "Sources/TokenScopeCore/Resources/zh-Hans.lproj/Localizable.strings"
+APP_SOURCES = ROOT / "Sources/TokenScopeApp"
+CORE_SOURCES = ROOT / "Sources/TokenScopeCore"
 
 # Baseline gate for key user-facing strings.
 # Expand as UI strings are localized; this is not an exhaustive extractor.
@@ -78,6 +80,7 @@ REQUIRED_CORE = {
 }
 
 ENTRY_RE = re.compile(r'"((?:[^"\\]|\\.)*)"\s*=\s*"((?:[^"\\]|\\.)*)"\s*;')
+HELPER_CALL_RE_TEMPLATE = r"\b{helper}\.string\(\s*\"((?:[^\"\\]|\\.)*)\""
 
 
 def load_strings(path: Path) -> dict[str, str]:
@@ -85,13 +88,34 @@ def load_strings(path: Path) -> dict[str, str]:
     return {key: value for key, value in ENTRY_RE.findall(data)}
 
 
-def check(path: Path, required: dict[str, str]) -> list[str]:
+def extract_helper_keys(source_dir: Path, helper: str) -> dict[str, list[str]]:
+    pattern = re.compile(HELPER_CALL_RE_TEMPLATE.format(helper=re.escape(helper)), re.MULTILINE | re.DOTALL)
+    keys: dict[str, list[str]] = {}
+
+    for path in sorted(source_dir.rglob("*.swift")):
+        data = path.read_text(encoding="utf-8")
+        for match in pattern.finditer(data):
+            key = match.group(1)
+            line = data.count("\n", 0, match.start()) + 1
+            keys.setdefault(key, []).append(f"{path.relative_to(ROOT)}:{line}")
+
+    return keys
+
+
+def check(path: Path, required: dict[str, str], helper_keys: dict[str, list[str]]) -> list[str]:
     errors: list[str] = []
     if not path.exists():
         errors.append(f"missing strings file: {path.relative_to(ROOT)}")
         return errors
 
     entries = load_strings(path)
+    for key, locations in helper_keys.items():
+        if key not in entries:
+            errors.append(
+                f"missing localized helper key in {path.relative_to(ROOT)}: {key} "
+                f"({', '.join(locations[:3])})"
+            )
+
     for key, expected in required.items():
         actual = entries.get(key)
         if actual is None:
@@ -102,7 +126,12 @@ def check(path: Path, required: dict[str, str]) -> list[str]:
 
 
 def main() -> int:
-    errors = check(APP_STRINGS, REQUIRED_APP) + check(CORE_STRINGS, REQUIRED_CORE)
+    app_helper_keys = extract_helper_keys(APP_SOURCES, "L10n")
+    core_helper_keys = extract_helper_keys(CORE_SOURCES, "CoreL10n")
+    errors = (
+        check(APP_STRINGS, REQUIRED_APP, app_helper_keys)
+        + check(CORE_STRINGS, REQUIRED_CORE, core_helper_keys)
+    )
     if errors:
         print("\n".join(errors))
         return 1

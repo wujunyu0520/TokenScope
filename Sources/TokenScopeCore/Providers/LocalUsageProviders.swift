@@ -21,30 +21,30 @@ public struct ClaudeCodeUsageProvider: UsageStatsProvider {
         let windows = [
             UsageWindowSnapshot(
                 id: "all-time",
-                title: "All sessions",
+                title: CoreL10n.string("All sessions"),
                 usedValue: totalUsage.totalTokens,
                 limitValue: nil,
-                unitLabel: "tokens",
+                unitLabel: CoreL10n.string("tokens"),
                 usedPercent: 0,
                 resetsAt: nil,
-                resetDescription: "Local history"
+                resetDescription: CoreL10n.string("Local history")
             ),
             UsageWindowSnapshot(
                 id: "last-7d",
-                title: "Last 7 days",
+                title: CoreL10n.string("Last 7 days"),
                 usedValue: weekUsage.totalTokens,
                 limitValue: nil,
-                unitLabel: "tokens",
+                unitLabel: CoreL10n.string("tokens"),
                 usedPercent: 0,
                 resetsAt: nil,
-                resetDescription: "Rolling"
+                resetDescription: CoreL10n.string("Rolling")
             ),
             UsageWindowSnapshot(
                 id: "latest-session",
-                title: "Latest session",
+                title: CoreL10n.string("Latest session"),
                 usedValue: latestUsage.totalTokens,
                 limitValue: nil,
-                unitLabel: "tokens",
+                unitLabel: CoreL10n.string("tokens"),
                 usedPercent: 0,
                 resetsAt: latest?.endedAt,
                 resetDescription: latest.map { $0.endedAt.formatted(date: .abbreviated, time: .shortened) }
@@ -54,11 +54,11 @@ public struct ClaudeCodeUsageProvider: UsageStatsProvider {
         return ProviderUsageSnapshot(
             provider: .claudeCode,
             updatedAt: Date(),
-            sourceLabel: "Local sessions",
+            sourceLabel: CoreL10n.string("Local sessions"),
             identitySummary: latest?.projectPath?.components(separatedBy: "/").last,
             planName: nil,
             windows: windows,
-            notice: scoped.isEmpty ? "No Claude Code sessions found." : nil
+            notice: scoped.isEmpty ? CoreL10n.string("No Claude Code sessions found.") : nil
         )
     }
 }
@@ -105,7 +105,7 @@ public struct CodexUsageProvider: UsageStatsProvider {
         let oauthSnapshot = CodexOAuthSnapshotBuilder.build(response: response, credentials: credentials)
         let costRows = buildCostRows(selectedAccount: selectedAccount, oauthIdentity: oauthSnapshot.identity)
         let accountOptions = [
-            Account(id: "live-system", provider: .codex, identifier: "live-system", displayName: "System account")
+            Account(id: "live-system", provider: .codex, identifier: "live-system", displayName: CoreL10n.string("System account"))
         ] + accounts.map {
             Account(id: $0.id.uuidString, provider: .codex, identifier: $0.providerAccountID ?? $0.email, displayName: $0.email)
         }
@@ -113,16 +113,16 @@ public struct CodexUsageProvider: UsageStatsProvider {
         return ProviderUsageSnapshot(
             provider: .codex,
             updatedAt: oauthSnapshot.updatedAt,
-            sourceLabel: selectedAccount == nil ? "OAuth · System account" : "OAuth · Added account",
+            sourceLabel: selectedAccount == nil ? CoreL10n.string("OAuth · System account") : CoreL10n.string("OAuth · Added account"),
             identitySummary: oauthSnapshot.identity.email,
             planName: oauthSnapshot.identity.planName?.capitalized,
-            accountDisplayName: selectedAccount?.email ?? oauthSnapshot.identity.email ?? "System account",
+            accountDisplayName: selectedAccount?.email ?? oauthSnapshot.identity.email ?? CoreL10n.string("System account"),
             accountOptions: accountOptions,
             selectedAccountID: selectedAccount.map { $0.id.uuidString } ?? "live-system",
             windows: oauthSnapshot.windows,
             creditsText: oauthSnapshot.creditsText,
             costRows: costRows,
-            notice: oauthSnapshot.windows.isEmpty ? "No Codex usage window returned." : nil
+            notice: oauthSnapshot.windows.isEmpty ? CoreL10n.string("No Codex usage window returned.") : nil
         )
     }
 
@@ -146,12 +146,12 @@ public struct CodexUsageProvider: UsageStatsProvider {
 
         return [
             ProviderUsageCostSnapshot(
-                title: "Today",
+                title: CoreL10n.string("Today"),
                 amountText: currency(todayTotals.costUSD),
                 detailText: tokenCount(todayTotals.usage.totalTokens)
             ),
             ProviderUsageCostSnapshot(
-                title: "Last 30 days",
+                title: CoreL10n.string("Last 30 days"),
                 amountText: currency(last30Totals.costUSD),
                 detailText: tokenCount(last30Totals.usage.totalTokens)
             ),
@@ -188,6 +188,6 @@ public struct CodexUsageProvider: UsageStatsProvider {
     }
 
     private func tokenCount(_ value: Int) -> String {
-        "\(value.formatted()) tokens"
+        CoreL10n.string("%@ tokens", value.formatted())
     }
 }

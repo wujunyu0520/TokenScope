@@ -17,14 +17,14 @@ public struct SessionDetailLoader: Sendable {
                 session: session,
                 mode: .usageOnly,
                 usageRecords: records,
-                notice: "Transcript unavailable for Codex yet; showing usage events."
+                notice: CoreL10n.string("Transcript unavailable for Codex yet; showing usage events.")
             )
         default:
             return SessionDetail(
                 session: session,
                 mode: .usageOnly,
                 usageRecords: usageRecords.filter { $0.provider == session.provider && $0.sessionId == session.id }.sorted { $0.timestamp < $1.timestamp },
-                notice: "Detailed transcript is unavailable for this provider."
+                notice: CoreL10n.string("Detailed transcript is unavailable for this provider.")
             )
         }
     }
@@ -120,7 +120,7 @@ public struct SessionDetailLoader: Sendable {
             session: session,
             mode: .messages,
             messages: messages.sorted { $0.timestamp < $1.timestamp },
-            notice: "OpenCode currently exposes summaries, usage, and errors rather than full transcript text."
+            notice: CoreL10n.string("OpenCode currently exposes summaries, usage, and errors rather than full transcript text.")
         )
     }
 

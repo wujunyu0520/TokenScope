@@ -73,7 +73,7 @@ final class UsageSettingsStore: ObservableObject {
     }
 
     func codexAccountOptions() -> [Account] {
-        let live = Account(id: "live-system", provider: .codex, identifier: "live-system", displayName: "System account")
+        let live = Account(id: "live-system", provider: .codex, identifier: "live-system", displayName: L10n.string("System account"))
         let managed = codexAccounts.map {
             Account(
                 id: $0.id.uuidString,

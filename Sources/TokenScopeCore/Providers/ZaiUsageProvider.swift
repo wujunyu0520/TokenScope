@@ -95,16 +95,16 @@ public struct ZaiUsageProvider: UsageStatsProvider {
         }
 
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw ZaiUsageError.networkError("Invalid response")
+            throw ZaiUsageError.networkError(CoreL10n.string("Invalid response"))
         }
 
         guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            let errorMessage = String(data: data, encoding: .utf8) ?? CoreL10n.string("Unknown error")
             throw ZaiUsageError.apiError("HTTP \(httpResponse.statusCode): \(errorMessage)")
         }
 
         guard !data.isEmpty else {
-            throw ZaiUsageError.parseFailed("Empty response body (HTTP 200). Check z.ai region and API key.")
+            throw ZaiUsageError.parseFailed(CoreL10n.string("Empty response body (HTTP 200). Check z.ai region and API key."))
         }
 
         do {
@@ -158,7 +158,7 @@ public struct ZaiUsageProvider: UsageStatsProvider {
             throw ZaiUsageError.apiError(apiResponse.msg)
         }
         guard let responseData = apiResponse.data else {
-            throw ZaiUsageError.parseFailed("Missing data")
+            throw ZaiUsageError.parseFailed(CoreL10n.string("Missing data"))
         }
 
         var tokenLimits: [ZaiLimitEntry] = []
@@ -261,14 +261,14 @@ private struct ZaiLimitEntry: Sendable {
         guard number > 0 else { return nil }
         let unitLabel: String?
         switch unit {
-        case .minutes: unitLabel = "minute"
-        case .hours: unitLabel = "hour"
-        case .days: unitLabel = "day"
-        case .weeks: unitLabel = "week"
+        case .minutes: unitLabel = CoreL10n.string("minute")
+        case .hours: unitLabel = CoreL10n.string("hour")
+        case .days: unitLabel = CoreL10n.string("day")
+        case .weeks: unitLabel = CoreL10n.string("week")
         case .unknown: unitLabel = nil
         }
         guard let unitLabel else { return nil }
-        return number == 1 ? "1 \(unitLabel) window" : "\(number) \(unitLabel)s window"
+        return CoreL10n.string("%d %@ window", number, unitLabel)
     }
 
     var mcpDetailSummary: String? {
@@ -319,9 +319,9 @@ private struct ZaiUsageSnapshot: Sendable {
 
     func toProviderUsageSnapshot(sourceLabel: String) -> ProviderUsageSnapshot {
         let windows = [
-            makeTokenWindow(id: "primary", title: tokenLimit?.windowLabel ?? "Primary window", limit: tokenLimit),
+            makeTokenWindow(id: "primary", title: tokenLimit?.windowLabel ?? CoreL10n.string("Primary window"), limit: tokenLimit),
             makeMCPWindow(id: "secondary", limit: tokenLimit != nil ? timeLimit : nil),
-            makeTokenWindow(id: "tertiary", title: sessionTokenLimit?.windowLabel ?? "Session token window", limit: sessionTokenLimit),
+            makeTokenWindow(id: "tertiary", title: sessionTokenLimit?.windowLabel ?? CoreL10n.string("Session token window"), limit: sessionTokenLimit),
             tokenLimit == nil ? makeMCPWindow(id: "primary", limit: timeLimit) : nil
         ].compactMap { $0 }
 
@@ -342,7 +342,7 @@ private struct ZaiUsageSnapshot: Sendable {
             title: title,
             usedValue: resolvedUsedValue(for: limit),
             limitValue: limit.usage,
-            unitLabel: "tokens",
+            unitLabel: CoreL10n.string("tokens"),
             usedPercent: limit.usedPercent,
             resetsAt: limit.nextResetTime,
             resetDescription: limit.windowLabel
