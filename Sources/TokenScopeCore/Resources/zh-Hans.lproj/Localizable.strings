@@ -1,0 +1,8 @@
+"Usage is unavailable for this provider." = "该服务暂不支持用量查询。";
+"Failed to load detailed session records." = "无法加载会话明细记录。";
+"Codex auth.json not found. Please sign in first." = "未找到 Codex auth.json，请先登录。";
+"Codex auth.json exists but contains no usable tokens." = "Codex auth.json 存在，但没有可用 token。";
+"Refresh token expired. Please sign in again." = "刷新 token 已过期，请重新登录。";
+"Invalid response from Codex usage API." = "Codex 用量 API 返回无效响应。";
+"z.ai API key is not configured." = "尚未配置 z.ai API Key。";
+"Invalid z.ai API credentials." = "z.ai API 凭据无效。";
