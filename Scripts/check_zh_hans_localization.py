@@ -9,6 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 APP_STRINGS = ROOT / "Sources/TokenScopeApp/Resources/zh-Hans.lproj/Localizable.strings"
 CORE_STRINGS = ROOT / "Sources/TokenScopeCore/Resources/zh-Hans.lproj/Localizable.strings"
 
+# Baseline gate for key user-facing strings.
+# Expand as UI strings are localized; this is not an exhaustive extractor.
 REQUIRED_APP = {
     "Dashboard": "仪表盘",
     "Usage": "用量",
@@ -75,7 +77,7 @@ REQUIRED_CORE = {
     "Invalid z.ai API credentials.": "z.ai API 凭据无效。",
 }
 
-ENTRY_RE = re.compile(r'"((?:[^"\\\\]|\\\\.)*)"\s*=\s*"((?:[^"\\\\]|\\\\.)*)"\s*;')
+ENTRY_RE = re.compile(r'"((?:[^"\\]|\\.)*)"\s*=\s*"((?:[^"\\]|\\.)*)"\s*;')
 
 
 def load_strings(path: Path) -> dict[str, str]:
