@@ -39,11 +39,11 @@ public enum CodexOAuthCredentialsError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .notFound:
-            return "Codex auth.json not found. Please sign in first."
+            return CoreL10n.string("Codex auth.json not found. Please sign in first.")
         case let .decodeFailed(message):
-            return "Failed to decode Codex credentials: \(message)"
+            return CoreL10n.string("Failed to decode Codex credentials: %@", message)
         case .missingTokens:
-            return "Codex auth.json exists but contains no usable tokens."
+            return CoreL10n.string("Codex auth.json exists but contains no usable tokens.")
         }
     }
 }
@@ -179,15 +179,15 @@ public enum CodexTokenRefresher {
         public var errorDescription: String? {
             switch self {
             case .expired:
-                return "Refresh token expired. Please sign in again."
+                return CoreL10n.string("Refresh token expired. Please sign in again.")
             case .revoked:
-                return "Refresh token was revoked. Please sign in again."
+                return CoreL10n.string("Refresh token was revoked. Please sign in again.")
             case .reused:
-                return "Refresh token was already used. Please sign in again."
+                return CoreL10n.string("Refresh token was already used. Please sign in again.")
             case let .networkError(error):
-                return "Network error during token refresh: \(error.localizedDescription)"
+                return CoreL10n.string("Network error during token refresh: %@", error.localizedDescription)
             case let .invalidResponse(message):
-                return "Invalid refresh response: \(message)"
+                return CoreL10n.string("Invalid refresh response: %@", message)
             }
         }
     }
@@ -368,16 +368,16 @@ public enum CodexOAuthFetchError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .unauthorized:
-            return "Codex OAuth token expired or invalid. Please sign in again."
+            return CoreL10n.string("Codex OAuth token expired or invalid. Please sign in again.")
         case .invalidResponse:
-            return "Invalid response from Codex usage API."
+            return CoreL10n.string("Invalid response from Codex usage API.")
         case let .serverError(code, message):
             if let message, !message.isEmpty {
-                return "Codex API error \(code): \(message)"
+                return CoreL10n.string("Codex API error %d: %@", code, message)
             }
-            return "Codex API error \(code)."
+            return CoreL10n.string("Codex API error %d.", code)
         case let .networkError(error):
-            return "Network error: \(error.localizedDescription)"
+            return CoreL10n.string("Network error: %@", error.localizedDescription)
         }
     }
 }

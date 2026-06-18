@@ -42,15 +42,15 @@ public enum ZaiUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingAPIKey:
-            return "z.ai API key is not configured."
+            return CoreL10n.string("z.ai API key is not configured.")
         case .invalidCredentials:
-            return "Invalid z.ai API credentials."
+            return CoreL10n.string("Invalid z.ai API credentials.")
         case let .networkError(message):
-            return "z.ai network error: \(message)"
+            return CoreL10n.string("z.ai network error: %@", message)
         case let .apiError(message):
-            return "z.ai API error: \(message)"
+            return CoreL10n.string("z.ai API error: %@", message)
         case let .parseFailed(message):
-            return "Failed to parse z.ai response: \(message)"
+            return CoreL10n.string("Failed to parse z.ai response: %@", message)
         }
     }
 }

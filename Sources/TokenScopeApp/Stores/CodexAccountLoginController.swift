@@ -19,17 +19,17 @@ final class CodexAccountLoginController {
         var errorDescription: String? {
             switch self {
             case .missingBinary:
-                return "`codex` command not found. Make sure Codex CLI is installed (npm install -g @openai/codex)."
+                return L10n.string("`codex` command not found. Make sure Codex CLI is installed (npm install -g @openai/codex).")
             case let .launchFailed(message):
-                return "Failed to start `codex login`: \(message)"
+                return L10n.string("Failed to start `codex login`: %@", message)
             case .timedOut:
-                return "`codex login` timed out."
+                return L10n.string("`codex login` timed out.")
             case let .failed(status, output):
-                return output.isEmpty ? "`codex login` exited with status \(status)." : output
+                return output.isEmpty ? L10n.string("`codex login` exited with status %d.", status) : output
             case .unreadableIdentity:
-                return "Signed in, but could not read Codex account identity."
+                return L10n.string("Signed in, but could not read Codex account identity.")
             case .missingEmail:
-                return "Signed in, but the account email is missing."
+                return L10n.string("Signed in, but the account email is missing.")
             }
         }
     }

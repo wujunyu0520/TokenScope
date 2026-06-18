@@ -87,7 +87,7 @@ final class AppStore: ObservableObject {
                     session: session,
                     mode: .usageOnly,
                     usageRecords: records.filter { $0.provider == session.provider && $0.sessionId == session.id }.sorted { $0.timestamp < $1.timestamp },
-                    notice: "Failed to load detailed session records."
+                    notice: L10n.string("Failed to load detailed session records.")
                 )
         }.value
     }
@@ -119,7 +119,11 @@ final class AppStore: ObservableObject {
                 let apiKey = usageSettings.loadZaiAPIKey()
                 snapshot = try await ZaiUsageProvider(apiKey: apiKey, region: usageSettings.zaiRegion).fetchSnapshot()
             default:
-                throw NSError(domain: "TokenScope", code: 1, userInfo: [NSLocalizedDescriptionKey: "Usage is unavailable for this provider."])
+                throw NSError(
+                    domain: "TokenScope",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: L10n.string("Usage is unavailable for this provider.")]
+                )
             }
 
             providerUsageSnapshots[provider] = snapshot

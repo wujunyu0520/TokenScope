@@ -105,6 +105,12 @@
 "System account" = "系统账号";
 "Signing in…" = "正在登录…";
 "Add Account" = "添加账号";
+"`codex` command not found. Make sure Codex CLI is installed (npm install -g @openai/codex)." = "未找到 `codex` 命令。请确认已安装 Codex CLI（npm install -g @openai/codex）。";
+"Failed to start `codex login`: %@" = "无法启动 `codex login`：%@";
+"`codex login` timed out." = "`codex login` 已超时。";
+"`codex login` exited with status %d." = "`codex login` 退出，状态码为 %d。";
+"Signed in, but could not read Codex account identity." = "已登录，但无法读取 Codex 账号身份信息。";
+"Signed in, but the account email is missing." = "已登录，但账号邮箱缺失。";
 "Configured" = "已配置";
 "Missing API key" = "缺少 API Key";
 "Not refreshed" = "尚未刷新";
