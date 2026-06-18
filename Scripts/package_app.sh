@@ -8,6 +8,36 @@ APP_NAME="TokenScope"
 BUNDLE_ID="com.jerrylee.tokenscope"
 BINARY_NAME="TokenScopeApp"
 
+strip_extended_attributes() {
+    local path="$1"
+    if command -v xattr >/dev/null 2>&1; then
+        local item
+        xattr -cr "$path"
+        while IFS= read -r -d '' item; do
+            xattr -d com.apple.FinderInfo "$item"
+        done < <(find "$path" -xattrname com.apple.FinderInfo -print0)
+        while IFS= read -r -d '' item; do
+            xattr -d 'com.apple.fileprovider.fpfs#P' "$item"
+        done < <(find "$path" -xattrname 'com.apple.fileprovider.fpfs#P' -print0)
+    fi
+}
+
+verify_strict_codesign() {
+    local path="$1"
+    local attempt
+    for attempt in {1..20}; do
+        strip_extended_attributes "$path"
+        if codesign --verify --deep --strict --verbose=2 "$path" >/dev/null 2>&1; then
+            strip_extended_attributes "$path"
+            return 0
+        fi
+        sleep 0.25
+    done
+
+    strip_extended_attributes "$path"
+    codesign --verify --deep --strict --verbose=2 "$path" >/dev/null
+}
+
 cd "$ROOT"
 
 echo "==> swift build ($CONFIG)"
@@ -80,9 +110,10 @@ APPL????
 PKG
 
 if [ "${CODEXBAR_SIGNING:-adhoc}" = "adhoc" ]; then
-    xattr -cr "$APP_DIR" 2>/dev/null || true
+    strip_extended_attributes "$APP_DIR"
     echo "==> codesign (ad-hoc)"
     codesign --force --deep --sign - "$APP_DIR" >/dev/null
+    verify_strict_codesign "$APP_DIR"
 fi
 
 echo "==> Built $APP_DIR"
