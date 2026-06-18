@@ -17,9 +17,9 @@ struct UsageView: View {
             VStack(alignment: .leading, spacing: 20) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Provider Usage")
+                        Text(L10n.string("Provider Usage"))
                             .font(.title2).bold()
-                        Text("Last updated: \(lastUpdatedText)")
+                        Text(L10n.string("Last updated: %@", lastUpdatedText))
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     }
@@ -28,7 +28,7 @@ struct UsageView: View {
                         now = Date()
                         Task { await store.refreshUsage() }
                     } label: {
-                        Label("Refresh", systemImage: "arrow.clockwise")
+                        Label(L10n.string("Refresh"), systemImage: "arrow.clockwise")
                     }
                 }
 
@@ -60,7 +60,7 @@ struct UsageView: View {
             }
             .padding(24)
         }
-        .navigationTitle("Usage")
+        .navigationTitle(L10n.string("Usage"))
         .task {
             if store.providerUsageSnapshots.isEmpty {
                 await store.refreshUsage()
@@ -125,7 +125,7 @@ private struct UsageProviderCard: View {
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
-                Button("Refresh") { refresh() }
+                Button(L10n.string("Refresh")) { refresh() }
                     .buttonStyle(.link)
                     .font(.caption)
             }
@@ -144,7 +144,7 @@ private struct UsageProviderCard: View {
         if state == .loading && snapshot == nil {
             HStack {
                 ProgressView()
-                Text("Refreshing\u{2026}")
+                Text(L10n.string("Refreshing…"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -152,7 +152,7 @@ private struct UsageProviderCard: View {
         } else if let snapshot {
             if provider == .codex,
                !snapshot.accountOptions.isEmpty {
-                Picker("Account", selection: Binding(
+                Picker(L10n.string("Account"), selection: Binding(
                     get: { snapshot.selectedAccountID ?? "live-system" },
                     set: { selectAccount($0) }
                 )) {
@@ -165,7 +165,7 @@ private struct UsageProviderCard: View {
             }
 
             if snapshot.windows.isEmpty {
-                Text(snapshot.notice ?? "No usage data available.")
+                Text(snapshot.notice ?? L10n.string("No usage data available."))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 40)
@@ -197,7 +197,7 @@ private struct UsageProviderCard: View {
                     .fill(Color.secondary.opacity(0.1))
                     .frame(height: 1)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Cost")
+                    Text(L10n.string("Cost"))
                         .font(.subheadline).bold()
                     ForEach(Array(snapshot.costRows.enumerated()), id: \.offset) { _, row in
                         HStack(alignment: .firstTextBaseline) {
@@ -250,11 +250,11 @@ private struct UsageProviderCard: View {
     private func emptyText(for provider: Provider) -> String {
         switch provider {
         case .zai:
-            return "Configure a z.ai API key in Settings to load usage."
+            return L10n.string("Configure a z.ai API key in Settings to load usage.")
         case .claudeCode, .codex:
-            return "No usage data available yet."
+            return L10n.string("No usage data available yet.")
         default:
-            return "No usage data available."
+            return L10n.string("No usage data available.")
         }
     }
 }
@@ -299,7 +299,7 @@ private struct UsageWindowRow: View {
     }
 
     private var percentText: String {
-        "\(Int(window.remainingPercent.rounded()))% left"
+        L10n.string("%d%% left", Int(window.remainingPercent.rounded()))
     }
 
     private var usageText: String? {
@@ -345,36 +345,36 @@ private struct UsageWindowRow: View {
         let value = Int(abs(reserve).rounded())
         guard value >= 1 else { return nil }
         if reserve < 0 {
-            return "\(value)% over pace"
+            return L10n.string("%d%% over pace", value)
         } else {
-            return "\(value)% in reserve"
+            return L10n.string("%d%% in reserve", value)
         }
     }
 
     private var resetText: String? {
         if let resetsAt = window.resetsAt {
             let text = resetCountdown(from: resetsAt, now: now)
-            return "Resets \(text)"
+            return L10n.string("Resets %@", text)
         }
         return window.resetDescription
     }
 
     private func resetCountdown(from date: Date, now: Date) -> String {
         let seconds = max(0, date.timeIntervalSince(now))
-        if seconds < 1 { return "now" }
+        if seconds < 1 { return L10n.string("now") }
         let totalMinutes = max(1, Int(ceil(seconds / 60.0)))
         let days = totalMinutes / (24 * 60)
         let hours = (totalMinutes / 60) % 24
         let minutes = totalMinutes % 60
 
         if days > 0 {
-            if hours > 0 { return "in \(days)d \(hours)h" }
-            return "in \(days)d"
+            if hours > 0 { return L10n.string("in %dd %dh", days, hours) }
+            return L10n.string("in %dd", days)
         }
         if hours > 0 {
-            if minutes > 0 { return "in \(hours)h \(minutes)m" }
-            return "in \(hours)h"
+            if minutes > 0 { return L10n.string("in %dh %dm", hours, minutes) }
+            return L10n.string("in %dh", hours)
         }
-        return "in \(totalMinutes)m"
+        return L10n.string("in %dm", totalMinutes)
     }
 }

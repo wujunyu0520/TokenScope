@@ -31,16 +31,16 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("About") {
-                LabeledContent("Version", value: TokenScopeCore.version)
+            Section(L10n.string("About")) {
+                LabeledContent(L10n.string("Version"), value: TokenScopeCore.version)
             }
 
-            Section("Usage Providers") {
+            Section(L10n.string("Usage Providers")) {
                 SecureField("z.ai API Key", text: $zaiAPIKey)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit(saveZaiAPIKey)
                 HStack {
-                    Picker("z.ai Region", selection: $zaiRegion) {
+                    Picker(L10n.string("z.ai Region"), selection: $zaiRegion) {
                         ForEach(ZaiAPIRegion.allCases, id: \.self) { region in
                             Text(region.displayName).tag(region)
                         }
@@ -50,20 +50,20 @@ struct SettingsView: View {
                         store.usageSettings.zaiRegion = newValue
                         Task { await store.refreshUsage(for: .zai) }
                     }
-                    Button("Save") { saveZaiAPIKey() }
+                    Button(L10n.string("Save")) { saveZaiAPIKey() }
                 }
                 LabeledContent("Claude Code", value: providerStatusText(.claudeCode))
                 VStack(alignment: .leading, spacing: 10) {
                     LabeledContent("Codex", value: providerStatusText(.codex))
                     HStack {
-                        Picker("Codex Account", selection: codexAccountBinding) {
-                            Text("System account").tag("live-system")
+                        Picker(L10n.string("Codex Account"), selection: codexAccountBinding) {
+                            Text(L10n.string("System account")).tag("live-system")
                             ForEach(store.usageSettings.codexAccounts, id: \.id) { account in
                                 Text(account.email).tag(account.id.uuidString)
                             }
                         }
                         .pickerStyle(.menu)
-                        Button(isAddingCodexAccount ? "Signing in…" : "Add Account") {
+                        Button(isAddingCodexAccount ? L10n.string("Signing in…") : L10n.string("Add Account")) {
                             addCodexAccount()
                         }
                         .disabled(isAddingCodexAccount)
@@ -74,18 +74,23 @@ struct SettingsView: View {
                             .foregroundStyle(.red)
                     }
                 }
-                LabeledContent("z.ai", value: store.usageSettings.hasZaiAPIKey() ? "Configured" : "Missing API key")
+                LabeledContent(
+                    "z.ai",
+                    value: store.usageSettings.hasZaiAPIKey()
+                        ? L10n.string("Configured")
+                        : L10n.string("Missing API key")
+                )
             }
 
-            Section("Directories") {
-                SettingsPathRow(title: "Claude Code data dir", url: claudeDataDir)
-                SettingsPathRow(title: "Codex data dir", url: codexDataDir)
-                SettingsPathRow(title: "OpenCode data dir", url: openCodeDataDir)
-                SettingsPathRow(title: "Local cache dir", url: localCacheDir)
+            Section(L10n.string("Directories")) {
+                SettingsPathRow(title: L10n.string("Claude Code data dir"), url: claudeDataDir)
+                SettingsPathRow(title: L10n.string("Codex data dir"), url: codexDataDir)
+                SettingsPathRow(title: L10n.string("OpenCode data dir"), url: openCodeDataDir)
+                SettingsPathRow(title: L10n.string("Local cache dir"), url: localCacheDir)
             }
         }
         .formStyle(.grouped)
-        .navigationTitle("Settings")
+        .navigationTitle(L10n.string("Settings"))
         .onAppear {
             zaiAPIKey = store.usageSettings.loadZaiAPIKey()
             zaiRegion = store.usageSettings.zaiRegion
@@ -136,13 +141,13 @@ struct SettingsView: View {
     private func providerStatusText(_ provider: Provider) -> String {
         switch store.usageRefreshStates[provider] ?? .idle {
         case .idle:
-            return store.providerUsageSnapshots[provider] == nil ? "Not refreshed" : "Cached"
+            return store.providerUsageSnapshots[provider] == nil ? L10n.string("Not refreshed") : L10n.string("Cached")
         case .loading:
-            return "Refreshing..."
+            return L10n.string("Refreshing...")
         case .loaded:
-            return "Ready"
+            return L10n.string("Ready")
         case .failed:
-            return store.usageErrors[provider] ?? "Failed"
+            return store.usageErrors[provider] ?? L10n.string("Failed")
         }
     }
 }

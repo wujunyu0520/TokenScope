@@ -28,42 +28,42 @@ struct PricingView: View {
 
     var body: some View {
         Table(sortedPrices, selection: $selectedID, sortOrder: $sortOrder) {
-            TableColumn("Provider", value: \.provider.rawValue) { p in
+            TableColumn(L10n.string("Provider"), value: \.provider.rawValue) { p in
                 Text(p.provider.displayName)
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { beginEditing(p) }
             }
-            TableColumn("Model", value: \.model) { p in
+            TableColumn(L10n.string("Model"), value: \.model) { p in
                 Text(p.model)
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { beginEditing(p) }
             }
-            TableColumn("Input / 1M", value: \.inputPerMillion) { p in
+            TableColumn(L10n.string("Input / 1M"), value: \.inputPerMillion) { p in
                 Text(String(format: "$%.3f", p.inputPerMillion))
                     .monospacedDigit()
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { beginEditing(p) }
             }
-            TableColumn("Output / 1M", value: \.outputPerMillion) { p in
+            TableColumn(L10n.string("Output / 1M"), value: \.outputPerMillion) { p in
                 Text(String(format: "$%.3f", p.outputPerMillion))
                     .monospacedDigit()
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { beginEditing(p) }
             }
-            TableColumn("Cache R / 1M", value: \.cacheReadPerMillion) { p in
+            TableColumn(L10n.string("Cache R / 1M"), value: \.cacheReadPerMillion) { p in
                 Text(String(format: "$%.3f", p.cacheReadPerMillion))
                     .monospacedDigit()
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { beginEditing(p) }
             }
-            TableColumn("Cache W / 1M", value: \.cacheCreationPerMillion) { p in
+            TableColumn(L10n.string("Cache W / 1M"), value: \.cacheCreationPerMillion) { p in
                 Text(String(format: "$%.3f", p.cacheCreationPerMillion))
                     .monospacedDigit()
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { beginEditing(p) }
             }
-            TableColumn("Source") { p in
-                Text(p.source.rawValue.capitalized)
+            TableColumn(L10n.string("Source")) { p in
+                Text(sourceText(p.source))
                     .font(.caption)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -79,22 +79,22 @@ struct PricingView: View {
         }
         .contextMenu(forSelectionType: String.self) { ids in
             if let id = ids.first, let p = prices.first(where: { $0.id == id }) {
-                Button("Edit…") { editing = p; showForm = true }
+                Button(L10n.string("Edit…")) { editing = p; showForm = true }
                 if p.source == .user {
-                    Button("Delete Override", role: .destructive) {
+                    Button(L10n.string("Delete Override"), role: .destructive) {
                         store.removePrice(model: p.model)
                     }
                 }
             }
         }
-        .navigationTitle("Pricing")
+        .navigationTitle(L10n.string("Pricing"))
         .toolbar {
             ToolbarItem {
                 Button {
                     editing = nil
                     showForm = true
                 } label: {
-                    Label("Add Price", systemImage: "plus")
+                    Label(L10n.string("Add Price"), systemImage: "plus")
                 }
             }
             ToolbarItem {
@@ -104,7 +104,7 @@ struct PricingView: View {
                         showForm = true
                     }
                 } label: {
-                    Label("Edit", systemImage: "pencil")
+                    Label(L10n.string("Edit"), systemImage: "pencil")
                 }
                 .disabled(selectedID == nil)
             }
@@ -120,6 +120,15 @@ struct PricingView: View {
 
     private func refresh() {
         prices = store.priceBook.listAll()
+    }
+
+    private func sourceText(_ source: ModelPrice.Source) -> String {
+        switch source {
+        case .builtin:
+            return L10n.string("Builtin")
+        case .user:
+            return L10n.string("User")
+        }
     }
 }
 
@@ -145,7 +154,7 @@ private struct PriceFormSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(isEditing ? "Edit Price" : "Add Price")
+                Text(isEditing ? L10n.string("Edit Price") : L10n.string("Add Price"))
                     .font(.title3).bold()
                 Spacer()
             }
@@ -153,27 +162,27 @@ private struct PriceFormSheet: View {
             Divider()
 
             Form {
-                Section("Model") {
-                    Picker("Provider", selection: $provider) {
+                Section(L10n.string("Model")) {
+                    Picker(L10n.string("Provider"), selection: $provider) {
                         ForEach(Provider.allCases, id: \.self) { p in
                             Text(p.displayName).tag(p)
                         }
                     }
-                    TextField("Model name (e.g. glm-4.7)", text: $model)
+                    TextField(L10n.string("Model name (e.g. glm-4.7)"), text: $model)
                         .disabled(isEditing)
                         .textFieldStyle(.roundedBorder)
                 }
-                Section("Pricing (USD per 1M tokens)") {
-                    LabeledContent("Input") {
+                Section(L10n.string("Pricing (USD per 1M tokens)")) {
+                    LabeledContent(L10n.string("Input")) {
                         TextField("0", text: $inputStr).textFieldStyle(.roundedBorder)
                     }
-                    LabeledContent("Output") {
+                    LabeledContent(L10n.string("Output")) {
                         TextField("0", text: $outputStr).textFieldStyle(.roundedBorder)
                     }
-                    LabeledContent("Cache Read") {
+                    LabeledContent(L10n.string("Cache Read")) {
                         TextField("0", text: $cacheReadStr).textFieldStyle(.roundedBorder)
                     }
-                    LabeledContent("Cache Create") {
+                    LabeledContent(L10n.string("Cache Create")) {
                         TextField("0", text: $cacheCreateStr).textFieldStyle(.roundedBorder)
                     }
                 }
@@ -184,9 +193,9 @@ private struct PriceFormSheet: View {
             Divider()
             HStack {
                 Spacer()
-                Button("Cancel") { dismiss() }
+                Button(L10n.string("Cancel")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button(isEditing ? "Save" : "Add") {
+                Button(isEditing ? L10n.string("Save") : L10n.string("Add")) {
                     let price = ModelPrice(
                         provider: provider,
                         model: model.trimmingCharacters(in: .whitespaces),

@@ -3,10 +3,10 @@ import SwiftUI
 struct BackupView: View {
     var body: some View {
         ContentUnavailableView(
-            "Backup (coming in P2)",
+            L10n.string("Backup (coming in P2)"),
             systemImage: "externaldrive.badge.timemachine",
-            description: Text("Incremental backup of Claude Code and Codex sessions keyed by session id.")
+            description: Text(L10n.string("Incremental backup of Claude Code and Codex sessions keyed by session id."))
         )
-        .navigationTitle("Backup")
+        .navigationTitle(L10n.string("Backup"))
     }
 }

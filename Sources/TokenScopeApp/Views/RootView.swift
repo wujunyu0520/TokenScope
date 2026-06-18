@@ -6,12 +6,12 @@ enum SidebarItem: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .dashboard: return "Dashboard"
-        case .usage: return "Usage"
-        case .sessions: return "Sessions"
-        case .pricing: return "Pricing"
-        case .backup: return "Backup"
-        case .settings: return "Settings"
+        case .dashboard: return L10n.string("Dashboard")
+        case .usage: return L10n.string("Usage")
+        case .sessions: return L10n.string("Sessions")
+        case .pricing: return L10n.string("Pricing")
+        case .backup: return L10n.string("Backup")
+        case .settings: return L10n.string("Settings")
         }
     }
     var systemImage: String {
