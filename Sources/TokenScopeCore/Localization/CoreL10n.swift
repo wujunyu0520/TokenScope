@@ -10,9 +10,12 @@ enum CoreL10n {
     }
 
     private static let zhHansBundle: Bundle? = {
-        guard let path = Bundle.module.path(forResource: "zh-Hans", ofType: "lproj") else {
-            return nil
+        for resourceName in ["zh-Hans", "zh-hans"] {
+            if let path = Bundle.module.path(forResource: resourceName, ofType: "lproj"),
+               let bundle = Bundle(path: path) {
+                return bundle
+            }
         }
-        return Bundle(path: path)
+        return nil
     }()
 }

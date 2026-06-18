@@ -16,6 +16,8 @@
 "No usage data available." = "暂无用量数据。";
 "No usage data available yet." = "暂无用量数据。";
 "Configure a z.ai API key in Settings to load usage." = "请在设置中配置 z.ai API Key 后加载用量。";
+"Failed to load detailed session records." = "无法加载会话明细记录。";
+"Usage is unavailable for this provider." = "该服务暂不支持用量查询。";
 "Monthly Usage" = "月度用量";
 "No usage in selected range" = "所选范围内暂无用量";
 "Activity Heatmap" = "活跃度热力图";
