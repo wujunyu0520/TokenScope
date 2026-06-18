@@ -27,6 +27,13 @@ mkdir -p "$APP_DIR/Contents/Resources"
 cp "$BUILT_BIN" "$APP_DIR/Contents/MacOS/$APP_NAME"
 chmod +x "$APP_DIR/Contents/MacOS/$APP_NAME"
 
+RESOURCE_DIR="$(dirname "$BUILT_BIN")"
+for RESOURCE_BUNDLE in "$RESOURCE_DIR"/TokenScope_*.bundle; do
+    if [ -d "$RESOURCE_BUNDLE" ]; then
+        cp -R "$RESOURCE_BUNDLE" "$APP_DIR/Contents/Resources/"
+    fi
+done
+
 # Generate icon if missing, then copy into bundle
 ICON_SRC="$ROOT/build/AppIcon.icns"
 if [ ! -f "$ICON_SRC" ] && [ -f "$ROOT/Scripts/generate_icon.swift" ]; then
@@ -47,6 +54,11 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 <plist version="1.0">
 <dict>
     <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>zh-Hans</string>
+    </array>
     <key>CFBundleDisplayName</key><string>$APP_NAME</string>
     <key>CFBundleExecutable</key><string>$APP_NAME</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
@@ -68,6 +80,7 @@ APPL????
 PKG
 
 if [ "${CODEXBAR_SIGNING:-adhoc}" = "adhoc" ]; then
+    xattr -cr "$APP_DIR" 2>/dev/null || true
     echo "==> codesign (ad-hoc)"
     codesign --force --deep --sign - "$APP_DIR" >/dev/null
 fi
