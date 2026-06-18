@@ -16,6 +16,7 @@
 "Provider Usage" = "服务用量";
 "Last updated: %@" = "最后更新：%@";
 "Usage Providers" = "用量服务";
+"z.ai API Key" = "z.ai API Key";
 "z.ai Region" = "z.ai 区域";
 "Codex Account" = "Codex 账号";
 "Account" = "账号";
@@ -28,7 +29,7 @@
 "Cost" = "成本";
 "%d%% left" = "剩余 %d%%";
 "%d%% over pace" = "超出节奏 %d%%";
-"%d%% in reserve" = "保留 %d%%";
+"%d%% in reserve" = "余量 %d%%";
 "Resets %@" = "%@重置";
 "now" = "现在";
 "in %dd %dh" = "%d天 %d小时后";
@@ -69,7 +70,7 @@
 "Model name (e.g. glm-4.7)" = "模型名称（例如 glm-4.7）";
 "Pricing (USD per 1M tokens)" = "价格（USD / 每 100 万 tokens）";
 "Builtin" = "内置";
-"User" = "用户";
+"User" = "自定义";
 "System account" = "系统账号";
 "Signing in…" = "正在登录…";
 "Add Account" = "添加账号";

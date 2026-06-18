@@ -36,7 +36,7 @@ struct SettingsView: View {
             }
 
             Section(L10n.string("Usage Providers")) {
-                SecureField("z.ai API Key", text: $zaiAPIKey)
+                SecureField(L10n.string("z.ai API Key"), text: $zaiAPIKey)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit(saveZaiAPIKey)
                 HStack {
