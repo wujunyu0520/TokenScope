@@ -441,7 +441,7 @@ private struct UsageWindowRow: View {
                 Text(window.title)
                     .font(.subheadline).bold()
                 Spacer()
-                Text(TokenDisplayFormatter.exact(usage.totalTokens))
+                Text(TokenDisplayFormatter.usageSummary(usage.totalTokens))
                     .font(.title3).bold()
                     .monospacedDigit()
                 Text(L10n.string("Total Tokens"))
@@ -472,7 +472,7 @@ private struct UsageWindowRow: View {
             Text(title)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-            Text(TokenDisplayFormatter.exact(value))
+            Text(TokenDisplayFormatter.usageSummary(value))
                 .font(.caption)
                 .monospacedDigit()
         }
