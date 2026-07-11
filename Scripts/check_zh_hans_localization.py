@@ -29,6 +29,15 @@ REQUIRED_APP = {
     "Close": "关闭",
     "Provider Usage": "服务用量",
     "Last updated: %@": "最后更新：%@",
+    "Cached · %@": "已缓存 · %@",
+    "Latest data is being verified": "正在验证最新数据",
+    "Previous successful update: %@": "上次成功更新：%@",
+    "Not live": "非实时",
+    "Snapshot updated: %@": "快照更新时间：%@",
+    "Refresh error: %@": "刷新错误：%@",
+    "Last successful update: %@": "上次成功更新：%@",
+    "Local session logs; not an official subscription quota.": "本地会话日志；并非官方订阅额度。",
+    "Quota from OpenAI's official API; local cost is an estimate.": "额度来自 OpenAI 官方 API；本地成本为估算值。",
     "No usage data available.": "暂无用量数据。",
     "No usage data available yet.": "暂无用量数据。",
     "Configure a z.ai API key in Settings to load usage.": "请在设置中配置 z.ai API Key 后加载用量。",
@@ -77,6 +86,7 @@ REQUIRED_CORE = {
     "Invalid response from Codex usage API.": "Codex 用量 API 返回无效响应。",
     "z.ai API key is not configured.": "尚未配置 z.ai API Key。",
     "Invalid z.ai API credentials.": "z.ai API 凭据无效。",
+    "Unknown error": "未知错误",
 }
 
 ENTRY_RE = re.compile(r'"((?:[^"\\]|\\.)*)"\s*=\s*"((?:[^"\\]|\\.)*)"\s*;')

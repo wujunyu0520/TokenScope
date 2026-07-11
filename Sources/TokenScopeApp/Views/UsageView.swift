@@ -62,9 +62,8 @@ struct UsageView: View {
         }
         .navigationTitle(L10n.string("Usage"))
         .task {
-            if store.providerUsageSnapshots.isEmpty {
-                await store.refreshUsage()
-            }
+            now = Date()
+            await store.refreshUsage()
         }
         .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { _ in
             now = Date()
@@ -84,6 +83,11 @@ private struct UsageProviderCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
+            if let sourceExplanation {
+                Text(sourceExplanation)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
             divider
             content
         }
@@ -141,100 +145,220 @@ private struct UsageProviderCard: View {
 
     @ViewBuilder
     private var content: some View {
-        if state == .loading && snapshot == nil {
-            HStack {
-                ProgressView()
-                Text(L10n.string("Refreshing…"))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, minHeight: 60)
-        } else if let snapshot {
-            if provider == .codex,
-               !snapshot.accountOptions.isEmpty {
-                Picker(L10n.string("Account"), selection: Binding(
-                    get: { snapshot.selectedAccountID ?? "live-system" },
-                    set: { selectAccount($0) }
-                )) {
-                    ForEach(snapshot.accountOptions) { account in
-                        Text(account.displayName).tag(account.id)
-                    }
-                }
-                .pickerStyle(.menu)
-                .font(.caption)
-            }
-
-            if snapshot.windows.isEmpty {
-                Text(snapshot.notice ?? L10n.string("No usage data available."))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 40)
+        switch dataStatus {
+        case .unavailable:
+            unavailableContent
+        case .cached(let updatedAt):
+            if let snapshot {
+                cachedStatus(updatedAt: updatedAt)
+                snapshotContent(snapshot)
             } else {
-                VStack(alignment: .leading, spacing: 16) {
-                    ForEach(snapshot.windows) { window in
-                        UsageWindowRow(
-                            window: window,
-                            color: color(for: provider),
-                            now: now
-                        )
-                        if window.id != snapshot.windows.last?.id {
-                            Rectangle()
-                                .fill(Color.secondary.opacity(0.1))
-                                .frame(height: 1)
-                        }
-                    }
-                }
+                unavailableContent
             }
+        case .refreshing(let previousUpdate):
+            if let snapshot, let previousUpdate {
+                refreshingStatus(previousUpdate: previousUpdate)
+                snapshotContent(snapshot)
+            } else {
+                loadingContent
+            }
+        case .current(let updatedAt):
+            if let snapshot {
+                currentStatus(updatedAt: updatedAt)
+                snapshotContent(snapshot)
+            } else {
+                unavailableContent
+            }
+        case .stale(let updatedAt, let message):
+            if let snapshot {
+                staleStatus(updatedAt: updatedAt, message: message)
+                snapshotContent(snapshot)
+            } else {
+                failedContent(message: message)
+            }
+        case .failed(let message):
+            failedContent(message: message)
+        }
+    }
 
-            if let creditsText = snapshot.creditsText {
-                Text(creditsText)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
+    private var dataStatus: UsageDataStatus {
+        UsageDataStatus.resolve(
+            snapshot: snapshot,
+            refreshState: state,
+            errorMessage: errorMessage
+        )
+    }
 
-            if !snapshot.costRows.isEmpty {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.1))
-                    .frame(height: 1)
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(L10n.string("Cost (est.)"))
-                        .font(.subheadline).bold()
-                    ForEach(Array(snapshot.costRows.enumerated()), id: \.offset) { _, row in
-                        HStack(alignment: .firstTextBaseline) {
-                            Text(row.title)
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text(row.amountText)
-                                .monospacedDigit()
-                            if let detail = row.detailText {
-                                Text(detail)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .font(.caption)
-                    }
-                    Text(L10n.string("Calculated from local sessions and built-in prices; not an official bill."))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            if let notice = snapshot.notice {
-                Text(notice)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-        } else if let errorMessage {
-            Text(errorMessage)
+    @ViewBuilder
+    private var loadingContent: some View {
+        HStack {
+            ProgressView()
+            Text(L10n.string("Refreshing…"))
                 .font(.callout)
-                .foregroundStyle(.red)
-                .frame(maxWidth: .infinity, minHeight: 40)
-        } else {
-            Text(emptyText(for: provider))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 60)
+    }
+
+    @ViewBuilder
+    private var unavailableContent: some View {
+        Text(emptyText(for: provider))
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, minHeight: 40)
+    }
+
+    @ViewBuilder
+    private func snapshotContent(_ snapshot: ProviderUsageSnapshot) -> some View {
+        if provider == .codex,
+           !snapshot.accountOptions.isEmpty {
+            Picker(L10n.string("Account"), selection: Binding(
+                get: { snapshot.selectedAccountID ?? "live-system" },
+                set: { selectAccount($0) }
+            )) {
+                ForEach(snapshot.accountOptions) { account in
+                    Text(account.displayName).tag(account.id)
+                }
+            }
+            .pickerStyle(.menu)
+            .font(.caption)
+        }
+
+        if snapshot.windows.isEmpty {
+            Text(snapshot.notice ?? L10n.string("No usage data available."))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, minHeight: 40)
+        } else {
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(snapshot.windows) { window in
+                    UsageWindowRow(
+                        window: window,
+                        color: color(for: provider),
+                        now: now
+                    )
+                    if window.id != snapshot.windows.last?.id {
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.1))
+                            .frame(height: 1)
+                    }
+                }
+            }
         }
+
+        if let creditsText = snapshot.creditsText {
+            Text(creditsText)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
+
+        if !snapshot.costRows.isEmpty {
+            Rectangle()
+                .fill(Color.secondary.opacity(0.1))
+                .frame(height: 1)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L10n.string("Cost (est.)"))
+                    .font(.subheadline).bold()
+                ForEach(Array(snapshot.costRows.enumerated()), id: \.offset) { _, row in
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(row.title)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(row.amountText)
+                            .monospacedDigit()
+                        if let detail = row.detailText {
+                            Text(detail)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .font(.caption)
+                }
+                Text(L10n.string("Calculated from local sessions and built-in prices; not an official bill."))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+
+        if let notice = snapshot.notice {
+            Text(notice)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func cachedStatus(updatedAt: Date) -> some View {
+        Label(
+            L10n.string("Cached · %@", formatted(updatedAt)),
+            systemImage: "clock.arrow.circlepath"
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+
+    private func refreshingStatus(previousUpdate: Date) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            ProgressView()
+                .controlSize(.small)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L10n.string("Latest data is being verified"))
+                    .font(.caption).bold()
+                Text(L10n.string("Previous successful update: %@", formatted(previousUpdate)))
+                    .font(.caption2)
+            }
+            .foregroundStyle(.secondary)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func currentStatus(updatedAt: Date) -> some View {
+        Text(L10n.string("Last successful update: %@", formatted(updatedAt)))
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+    }
+
+    private func staleStatus(updatedAt: Date, message: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L10n.string("Not live"))
+                    .bold()
+                Text(L10n.string("Snapshot updated: %@", formatted(updatedAt)))
+                Text(L10n.string("Refresh error: %@", message))
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.orange)
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func failedContent(message: String) -> some View {
+        Label {
+            Text(message)
+        } icon: {
+            Image(systemName: "exclamationmark.triangle.fill")
+        }
+        .font(.callout)
+        .foregroundStyle(.red)
+        .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+    }
+
+    private var sourceExplanation: String? {
+        switch provider {
+        case .claudeCode:
+            return L10n.string("Local session logs; not an official subscription quota.")
+        case .codex:
+            return L10n.string("Quota from OpenAI's official API; local cost is an estimate.")
+        default:
+            return nil
+        }
+    }
+
+    private func formatted(_ date: Date) -> String {
+        date.formatted(date: .abbreviated, time: .shortened)
     }
 
     private func color(for provider: Provider) -> Color {

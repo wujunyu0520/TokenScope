@@ -116,3 +116,40 @@ public enum UsageRefreshState: String, Codable, Sendable, Hashable {
     case loaded
     case failed
 }
+
+public enum UsageDataStatus: Sendable, Equatable {
+    case unavailable
+    case cached(updatedAt: Date)
+    case refreshing(previousUpdate: Date?)
+    case current(updatedAt: Date)
+    case stale(updatedAt: Date, message: String)
+    case failed(message: String)
+
+    public static func resolve(
+        snapshot: ProviderUsageSnapshot?,
+        refreshState: UsageRefreshState,
+        errorMessage: String?
+    ) -> UsageDataStatus {
+        switch refreshState {
+        case .idle:
+            guard let snapshot else { return .unavailable }
+            return .cached(updatedAt: snapshot.updatedAt)
+        case .loading:
+            return .refreshing(previousUpdate: snapshot?.updatedAt)
+        case .loaded:
+            guard let snapshot else { return .unavailable }
+            return .current(updatedAt: snapshot.updatedAt)
+        case .failed:
+            let message = resolvedErrorMessage(errorMessage)
+            guard let snapshot else { return .failed(message: message) }
+            return .stale(updatedAt: snapshot.updatedAt, message: message)
+        }
+    }
+
+    private static func resolvedErrorMessage(_ errorMessage: String?) -> String {
+        guard let errorMessage, !errorMessage.isEmpty else {
+            return CoreL10n.string("Unknown error")
+        }
+        return errorMessage
+    }
+}

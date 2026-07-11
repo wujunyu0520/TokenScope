@@ -20,20 +20,25 @@ public struct ClaudeCodeParser: Sendable {
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
-        let sessionId = stableSessionID(for: fileURL)
+        var embeddedSessionID: String?
         var projectCwd: String?
         var startedAt: Date?
         var endedAt: Date?
-        var usageRecords: [UsageRecord] = []
+        var usageEvents: [(model: String, timestamp: Date, usage: TokenUsage)] = []
         var modelsSet: Set<String> = []
         var total = TokenUsage.zero
-        var messageIndex = 0
 
         let lines = data.split(separator: UInt8(ascii: "\n"))
         for rawLine in lines {
             guard !rawLine.isEmpty,
                   let obj = try? JSONSerialization.jsonObject(with: Data(rawLine)) as? [String: Any]
             else { continue }
+
+            if embeddedSessionID == nil,
+               let candidate = obj["sessionId"] as? String,
+               !candidate.isEmpty {
+                embeddedSessionID = candidate
+            }
 
             if let cwd = obj["cwd"] as? String { projectCwd = cwd }
 
@@ -61,20 +66,23 @@ public struct ClaudeCodeParser: Sendable {
                 return endedAt ?? Date()
             }()
 
-            usageRecords.append(UsageRecord(
-                sessionId: sessionId,
-                messageIndex: messageIndex,
-                provider: .claudeCode,
-                accountId: nil,
-                model: model,
-                timestamp: ts,
-                usage: usage
-            ))
-            messageIndex += 1
+            usageEvents.append((model: model, timestamp: ts, usage: usage))
             modelsSet.insert(model)
             total += usage
         }
 
+        let sessionId = stableSessionID(for: fileURL, embeddedSessionID: embeddedSessionID)
+        let usageRecords = usageEvents.enumerated().map { messageIndex, event in
+            UsageRecord(
+                sessionId: sessionId,
+                messageIndex: messageIndex,
+                provider: .claudeCode,
+                accountId: nil,
+                model: event.model,
+                timestamp: event.timestamp,
+                usage: event.usage
+            )
+        }
         let start = startedAt ?? Date()
         let end = endedAt ?? start
 
@@ -88,17 +96,17 @@ public struct ClaudeCodeParser: Sendable {
             endedAt: end,
             modelsUsed: Array(modelsSet).sorted(),
             totalUsage: total,
-            messageCount: messageIndex
+            messageCount: usageRecords.count
         )
         return ClaudeCodeParseResult(session: session, usageRecords: usageRecords)
     }
 
-    private func stableSessionID(for fileURL: URL) -> String {
+    private func stableSessionID(for fileURL: URL, embeddedSessionID: String?) -> String {
         let path = fileURL.path
         if path.contains("/subagents/") {
             let base = fileURL.deletingPathExtension().lastPathComponent
             return "subagent:\(base)"
         }
-        return fileURL.deletingPathExtension().lastPathComponent
+        return embeddedSessionID ?? fileURL.deletingPathExtension().lastPathComponent
     }
 }

@@ -15,6 +15,15 @@
 "Version" = "版本";
 "Provider Usage" = "服务用量";
 "Last updated: %@" = "最后更新：%@";
+"Cached · %@" = "已缓存 · %@";
+"Latest data is being verified" = "正在验证最新数据";
+"Previous successful update: %@" = "上次成功更新：%@";
+"Not live" = "非实时";
+"Snapshot updated: %@" = "快照更新时间：%@";
+"Refresh error: %@" = "刷新错误：%@";
+"Last successful update: %@" = "上次成功更新：%@";
+"Local session logs; not an official subscription quota." = "本地会话日志；并非官方订阅额度。";
+"Quota from OpenAI's official API; local cost is an estimate." = "额度来自 OpenAI 官方 API；本地成本为估算值。";
 "Usage Providers" = "用量服务";
 "z.ai API Key" = "z.ai API Key";
 "z.ai Region" = "z.ai 区域";

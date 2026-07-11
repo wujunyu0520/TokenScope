@@ -25,7 +25,8 @@ let package = Package(
         .testTarget(
             name: "TokenScopeCoreTests",
             dependencies: ["TokenScopeCore"],
-            path: "Tests/TokenScopeCoreTests"
+            path: "Tests/TokenScopeCoreTests",
+            resources: [.process("Fixtures")]
         ),
     ]
 )
