@@ -17,7 +17,7 @@ final class FixtureRegressionTests: XCTestCase {
 
         let results = ClaudeCodeScanner(root: root).scan()
 
-        XCTAssertEqual(results.map(\.session.id), ["claude-one-session"])
+        XCTAssertEqual(results.map(\.session.id), ["synthetic-session"])
     }
 
     func testClaudeFixtureUsesRecordTimestampsForRollingSevenDayMetrics() async throws {
