@@ -72,7 +72,7 @@ public final class UsageCache: @unchecked Sendable {
         var recordMap: [String: UsageRecord] = [:]
 
         if let cached {
-            for s in cached.sessions {
+            for s in cached.sessions where !Self.isEmptyClaudeSession(s) {
                 sessionMap[sessionKey(provider: s.provider, id: s.id)] = s
             }
             for r in cached.records {
@@ -97,5 +97,10 @@ public final class UsageCache: @unchecked Sendable {
         let sessions = sessionMap.values.sorted { $0.startedAt > $1.startedAt }
         let records = Array(recordMap.values)
         return (sessions, records)
+    }
+
+    private static func isEmptyClaudeSession(_ session: SessionRecord) -> Bool {
+        session.provider == .claudeCode
+            && (session.messageCount == 0 || session.totalUsage.totalTokens == 0)
     }
 }

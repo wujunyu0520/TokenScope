@@ -3,25 +3,57 @@ import Foundation
 public struct ClaudeCodeUsageProvider: UsageStatsProvider {
     public let provider: Provider = .claudeCode
     private let sessions: [SessionRecord]
+    private let usageRecords: [UsageRecord]
+    private let now: Date
 
-    public init(sessions: [SessionRecord]) {
+    public init(
+        sessions: [SessionRecord],
+        usageRecords: [UsageRecord],
+        now: Date = Date()
+    ) {
         self.sessions = sessions.filter { $0.provider == .claudeCode }
+        self.usageRecords = usageRecords.filter { $0.provider == .claudeCode }
+        self.now = now
     }
 
     public func fetchSnapshot() async throws -> ProviderUsageSnapshot {
-        let scoped = sessions.sorted { $0.startedAt > $1.startedAt }
+        let scoped = sessions
+            .filter { $0.messageCount > 0 && $0.totalUsage.totalTokens > 0 }
+            .sorted { $0.startedAt > $1.startedAt }
         let latest = scoped.first
-        let totalUsage = scoped.reduce(TokenUsage.zero) { $0 + $1.totalUsage }
-        let weekSessions = scoped.filter {
-            $0.startedAt >= Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+        let validSessionIDs = Set(scoped.map(\.id))
+        let validRecords = usageRecords.filter { validSessionIDs.contains($0.sessionId) }
+        let recordsBySession = Dictionary(grouping: validRecords, by: \.sessionId)
+        let totalUsage = scoped.reduce(TokenUsage.zero) { partial, session in
+            guard let records = recordsBySession[session.id], !records.isEmpty else {
+                return partial + session.totalUsage
+            }
+            return partial + records.reduce(TokenUsage.zero) { $0 + $1.usage }
         }
-        let weekUsage = weekSessions.reduce(TokenUsage.zero) { $0 + $1.totalUsage }
-        let latestUsage = latest?.totalUsage ?? .zero
+        let weekStart = Calendar.current.date(byAdding: .day, value: -7, to: now) ?? now
+        let weekUsage = scoped.reduce(TokenUsage.zero) { partial, session in
+            guard let records = recordsBySession[session.id], !records.isEmpty else {
+                guard session.startedAt >= weekStart, session.startedAt <= now else { return partial }
+                return partial + session.totalUsage
+            }
+            let usage = records
+                .filter { $0.timestamp >= weekStart && $0.timestamp <= now }
+                .reduce(TokenUsage.zero) { $0 + $1.usage }
+            return partial + usage
+        }
+        let latestUsage = latest.map { latestSession in
+            let records = recordsBySession[latestSession.id] ?? []
+            return records.isEmpty
+                ? latestSession.totalUsage
+                : records.reduce(TokenUsage.zero) { $0 + $1.usage }
+        } ?? .zero
 
         let windows = [
             UsageWindowSnapshot(
                 id: "all-time",
                 title: CoreL10n.string("All sessions"),
+                kind: .tokenSummary,
+                tokenUsage: totalUsage,
                 usedValue: totalUsage.totalTokens,
                 limitValue: nil,
                 unitLabel: CoreL10n.string("tokens"),
@@ -32,6 +64,8 @@ public struct ClaudeCodeUsageProvider: UsageStatsProvider {
             UsageWindowSnapshot(
                 id: "last-7d",
                 title: CoreL10n.string("Last 7 days"),
+                kind: .tokenSummary,
+                tokenUsage: weekUsage,
                 usedValue: weekUsage.totalTokens,
                 limitValue: nil,
                 unitLabel: CoreL10n.string("tokens"),
@@ -42,11 +76,13 @@ public struct ClaudeCodeUsageProvider: UsageStatsProvider {
             UsageWindowSnapshot(
                 id: "latest-session",
                 title: CoreL10n.string("Latest session"),
+                kind: .tokenSummary,
+                tokenUsage: latestUsage,
                 usedValue: latestUsage.totalTokens,
                 limitValue: nil,
                 unitLabel: CoreL10n.string("tokens"),
                 usedPercent: 0,
-                resetsAt: latest?.endedAt,
+                resetsAt: nil,
                 resetDescription: latest.map { $0.endedAt.formatted(date: .abbreviated, time: .shortened) }
             )
         ]
@@ -58,7 +94,7 @@ public struct ClaudeCodeUsageProvider: UsageStatsProvider {
             identitySummary: latest?.projectPath?.components(separatedBy: "/").last,
             planName: nil,
             windows: windows,
-            notice: scoped.isEmpty ? CoreL10n.string("No Claude Code sessions found.") : nil
+            notice: scoped.isEmpty ? CoreL10n.string("No Claude Code sessions with usage found.") : nil
         )
     }
 }

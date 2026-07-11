@@ -1,6 +1,15 @@
 import Foundation
 
 public enum TokenDisplayFormatter {
+    public static func exact(_ value: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.usesGroupingSeparator = true
+        formatter.maximumFractionDigits = 0
+        return formatter.string(from: NSNumber(value: value)) ?? String(value)
+    }
+
     public static func hundredMillions(_ value: Int) -> String {
         guard value != 0 else { return "0" }
 

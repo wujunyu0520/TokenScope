@@ -197,7 +197,7 @@ private struct UsageProviderCard: View {
                     .fill(Color.secondary.opacity(0.1))
                     .frame(height: 1)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(L10n.string("Cost"))
+                    Text(L10n.string("Cost (est.)"))
                         .font(.subheadline).bold()
                     ForEach(Array(snapshot.costRows.enumerated()), id: \.offset) { _, row in
                         HStack(alignment: .firstTextBaseline) {
@@ -213,6 +213,9 @@ private struct UsageProviderCard: View {
                         }
                         .font(.caption)
                     }
+                    Text(L10n.string("Calculated from local sessions and built-in prices; not an official bill."))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -264,7 +267,16 @@ private struct UsageWindowRow: View {
     let color: Color
     let now: Date
 
+    @ViewBuilder
     var body: some View {
+        if window.kind == .tokenSummary {
+            tokenSummaryBody
+        } else {
+            quotaBody
+        }
+    }
+
+    private var quotaBody: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
                 Text(window.title)
@@ -296,6 +308,51 @@ private struct UsageWindowRow: View {
                 }
             }
         }
+    }
+
+    private var tokenSummaryBody: some View {
+        let usage = window.tokenUsage ?? .zero
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(window.title)
+                    .font(.subheadline).bold()
+                Spacer()
+                Text(TokenDisplayFormatter.exact(usage.totalTokens))
+                    .font(.title3).bold()
+                    .monospacedDigit()
+                Text(L10n.string("Total Tokens"))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 24) {
+                tokenMetric(L10n.string("Input"), value: usage.inputTokens)
+                tokenMetric(L10n.string("Output"), value: usage.outputTokens)
+                tokenMetric(L10n.string("Cache Create"), value: usage.cacheCreationTokens)
+                tokenMetric(L10n.string("Cache Read"), value: usage.cacheReadTokens)
+            }
+
+            if let description = window.resetDescription {
+                HStack {
+                    Spacer()
+                    Text(description)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private func tokenMetric(_ title: String, value: Int) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(TokenDisplayFormatter.exact(value))
+                .font(.caption)
+                .monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var percentText: String {
@@ -356,7 +413,7 @@ private struct UsageWindowRow: View {
     }
 
     private var resetText: String? {
-        if let resetsAt = window.resetsAt {
+        if let resetsAt = window.quotaResetDate {
             let text = resetCountdown(from: resetsAt, now: now)
             return L10n.string("Resets %@", text)
         }

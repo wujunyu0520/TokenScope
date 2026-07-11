@@ -106,7 +106,10 @@ final class AppStore: ObservableObject {
             let snapshot: ProviderUsageSnapshot
             switch provider {
             case .claudeCode:
-                snapshot = try await ClaudeCodeUsageProvider(sessions: sessions).fetchSnapshot()
+                snapshot = try await ClaudeCodeUsageProvider(
+                    sessions: sessions,
+                    usageRecords: usageRecords
+                ).fetchSnapshot()
             case .codex:
                 snapshot = try await CodexUsageProvider(
                     sessions: sessions,
