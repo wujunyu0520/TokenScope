@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "updatedAt": "2027-01-08T12:00:00Z",
+  "snapshots": [
+    {
+      "provider": "claude_code",
+      "updatedAt": "2027-01-08T12:00:00Z",
+      "sourceLabel": "Synthetic legacy cache",
+      "accountOptions": [],
+      "windows": [
+        {
+          "id": "all-time",
+          "title": "All sessions",
+          "kind": "tokenSummary",
+          "tokenUsage": {
+            "inputTokens": 10,
+            "outputTokens": 20,
+            "cacheCreationTokens": 30,
+            "cacheReadTokens": 40
+          },
+          "usedValue": 100,
+          "usedPercent": 0
+        }
+      ],
+      "costRows": []
+    }
+  ]
+}

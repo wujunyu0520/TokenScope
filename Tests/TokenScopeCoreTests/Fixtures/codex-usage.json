@@ -1,0 +1,28 @@
+{
+  "plan_type": "pro",
+  "rate_limit": {
+    "primary_window": {
+      "used_percent": 42,
+      "reset_at": 1800001000,
+      "limit_window_seconds": 18000
+    },
+    "secondary_window": {
+      "used_percent": 17,
+      "reset_at": 1800600000,
+      "limit_window_seconds": 604800
+    }
+  },
+  "credits": {
+    "has_credits": true,
+    "unlimited": false,
+    "balance": "12.5"
+  },
+  "OPENAI_API_KEY": "synthetic-api-key-not-a-credential",
+  "tokens": {
+    "access_token": "synthetic-oauth-access-token",
+    "refresh_token": "synthetic-oauth-refresh-token",
+    "id_token": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJlbWFpbCI6ImRldmVsb3BlckBleGFtcGxlLmludmFsaWQiLCJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsiY2hhdGdwdF9hY2NvdW50X2lkIjoiYWNjb3VudC1maXh0dXJlIiwiY2hhdGdwdF9wbGFuX3R5cGUiOiJwcm8ifX0.synthetic-signature",
+    "account_id": "account-fixture"
+  },
+  "last_refresh": "2027-01-08T12:00:00Z"
+}
