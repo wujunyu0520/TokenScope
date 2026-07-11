@@ -1,0 +1,414 @@
+{
+  "acceptance_criteria": {
+    "claude_token_delta": 0,
+    "codex_account_provenance_required": true,
+    "codex_cache_age_seconds_max": 60,
+    "codex_reset_seconds_delta": 0,
+    "codex_used_percent_delta_max": 1
+  },
+  "claude": {
+    "boundary_alternative_distance_seconds": 260067.082883,
+    "cross_boundary_sample_available": false,
+    "current_log_window_deltas": {
+      "all-time": {
+        "cache_creation_tokens": 770870,
+        "cache_read_tokens": 8892068,
+        "input_tokens": 63258,
+        "output_tokens": 281319,
+        "total_tokens": 10007515
+      },
+      "last-7d": {
+        "cache_creation_tokens": 0,
+        "cache_read_tokens": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0
+      },
+      "latest-session": {
+        "cache_creation_tokens": 0,
+        "cache_read_tokens": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0
+      }
+    },
+    "current_log_windows": {
+      "all-time": {
+        "cache_creation_tokens": 121683489,
+        "cache_read_tokens": 2744784813,
+        "input_tokens": 15990392,
+        "output_tokens": 14179761,
+        "total_tokens": 2896638455
+      },
+      "last-7d": {
+        "cache_creation_tokens": 74446147,
+        "cache_read_tokens": 1169409702,
+        "input_tokens": 14650216,
+        "output_tokens": 6680312,
+        "total_tokens": 1265186377
+      },
+      "latest-session": {
+        "cache_creation_tokens": 2291638,
+        "cache_read_tokens": 21956159,
+        "input_tokens": 75358,
+        "output_tokens": 262114,
+        "total_tokens": 24585269
+      },
+      "week_start": "2026-07-04T16:03:09.166117+00:00"
+    },
+    "deduplicated_log_windows": {
+      "all-time": {
+        "cache_creation_tokens": 121669143,
+        "cache_read_tokens": 2744760977,
+        "input_tokens": 15964066,
+        "output_tokens": 14175287,
+        "total_tokens": 2896569473
+      },
+      "last-7d": {
+        "cache_creation_tokens": 74446147,
+        "cache_read_tokens": 1169409702,
+        "input_tokens": 14650216,
+        "output_tokens": 6680312,
+        "total_tokens": 1265186377
+      },
+      "latest-session": {
+        "cache_creation_tokens": 2291638,
+        "cache_read_tokens": 21956159,
+        "input_tokens": 75358,
+        "output_tokens": 262114,
+        "total_tokens": 24585269
+      },
+      "week_start": "2026-07-04T16:03:09.166117+00:00"
+    },
+    "full_reconciliation_passed": true,
+    "history_cache_windows": {
+      "all-time": {
+        "cache_creation_tokens": 122454359,
+        "cache_read_tokens": 2753676881,
+        "input_tokens": 16053650,
+        "output_tokens": 14461080,
+        "total_tokens": 2906645970
+      },
+      "last-7d": {
+        "cache_creation_tokens": 74446147,
+        "cache_read_tokens": 1169409702,
+        "input_tokens": 14650216,
+        "output_tokens": 6680312,
+        "total_tokens": 1265186377
+      },
+      "latest-session": {
+        "cache_creation_tokens": 2291638,
+        "cache_read_tokens": 21956159,
+        "input_tokens": 75358,
+        "output_tokens": 262114,
+        "total_tokens": 24585269
+      },
+      "week_start": "2026-07-04T16:03:09.166117+00:00"
+    },
+    "history_reconciliation": {
+      "cache_only_usage": {
+        "cache_creation_tokens": 785216,
+        "cache_read_tokens": 8915904,
+        "input_tokens": 89584,
+        "output_tokens": 285793,
+        "total_tokens": 10076497
+      },
+      "duplicate_conflict_count": 0,
+      "duplicate_copy_usage": {
+        "cache_creation_tokens": 14346,
+        "cache_read_tokens": 23836,
+        "input_tokens": 26326,
+        "output_tokens": 4474,
+        "total_tokens": 68982
+      },
+      "equation_delta": {
+        "cache_creation_tokens": 0,
+        "cache_read_tokens": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0
+      }
+    },
+    "latest_session_hash": "d5df4b640d57",
+    "production_windows": {
+      "all-time": {
+        "cache_creation_tokens": 122454359,
+        "cache_read_tokens": 2753676881,
+        "input_tokens": 16053650,
+        "output_tokens": 14461080,
+        "total_tokens": 2906645970
+      },
+      "last-7d": {
+        "cache_creation_tokens": 74446147,
+        "cache_read_tokens": 1169409702,
+        "input_tokens": 14650216,
+        "output_tokens": 6680312,
+        "total_tokens": 1265186377
+      },
+      "latest-session": {
+        "cache_creation_tokens": 2291638,
+        "cache_read_tokens": 21956159,
+        "input_tokens": 75358,
+        "output_tokens": 262114,
+        "total_tokens": 24585269
+      }
+    },
+    "profile": {
+      "cache_only_sessions": 6,
+      "duplicate_session_ids": 1,
+      "excluded_empty_or_zero": 95,
+      "jsonl_files": 489,
+      "parse_errors": 0,
+      "parsed_files": 489,
+      "raw_sessions_missing_from_cache": 0,
+      "valid_sessions": 394
+    },
+    "provider_windows_passed": true,
+    "raw_windows": {
+      "all-time": {
+        "cache_creation_tokens": 121683489,
+        "cache_read_tokens": 2744784813,
+        "input_tokens": 15990392,
+        "output_tokens": 14179761,
+        "total_tokens": 2896638455
+      },
+      "last-7d": {
+        "cache_creation_tokens": 74446147,
+        "cache_read_tokens": 1169409702,
+        "input_tokens": 14650216,
+        "output_tokens": 6680312,
+        "total_tokens": 1265186377
+      },
+      "latest-session": {
+        "cache_creation_tokens": 2291638,
+        "cache_read_tokens": 21956159,
+        "input_tokens": 75358,
+        "output_tokens": 262114,
+        "total_tokens": 24585269
+      },
+      "week_start": "2026-07-04T16:03:09.166117+00:00"
+    },
+    "reconciliation_checks": {
+      "all_raw_sessions_cached": true,
+      "duplicate_usage_conflicts_zero": true,
+      "history_equation_delta_zero": true,
+      "parse_errors_zero": true
+    },
+    "sample_comparisons_passed": true,
+    "samples": {
+      "boundary_alternative": {
+        "comparison": {
+          "deltas": {
+            "cache_creation_tokens": 0,
+            "cache_read_tokens": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0
+          },
+          "max_absolute_delta": 0,
+          "passed": true
+        },
+        "first_usage_at": "2026-07-07T16:17:36.249000+00:00",
+        "last_usage_at": "2026-07-08T00:56:52.860000+00:00",
+        "message_count": 750,
+        "production_cache_usage": {
+          "cache_creation_tokens": 4235926,
+          "cache_read_tokens": 254267953,
+          "input_tokens": 121943,
+          "output_tokens": 627144,
+          "total_tokens": 259252966
+        },
+        "raw_usage": {
+          "cache_creation_tokens": 4235926,
+          "cache_read_tokens": 254267953,
+          "input_tokens": 121943,
+          "output_tokens": 627144,
+          "total_tokens": 259252966
+        },
+        "session_hash": "9e48ac12cf73"
+      },
+      "cross_boundary": null,
+      "largest": {
+        "comparison": {
+          "deltas": {
+            "cache_creation_tokens": 0,
+            "cache_read_tokens": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0
+          },
+          "max_absolute_delta": 0,
+          "passed": true
+        },
+        "first_usage_at": "2026-06-13T10:43:35.940000+00:00",
+        "last_usage_at": "2026-06-13T15:24:22.364000+00:00",
+        "message_count": 1100,
+        "production_cache_usage": {
+          "cache_creation_tokens": 4099535,
+          "cache_read_tokens": 471942406,
+          "input_tokens": 124762,
+          "output_tokens": 1607205,
+          "total_tokens": 477773908
+        },
+        "raw_usage": {
+          "cache_creation_tokens": 4099535,
+          "cache_read_tokens": 471942406,
+          "input_tokens": 124762,
+          "output_tokens": 1607205,
+          "total_tokens": 477773908
+        },
+        "session_hash": "eac4bbaf5955"
+      },
+      "small": {
+        "comparison": {
+          "deltas": {
+            "cache_creation_tokens": 0,
+            "cache_read_tokens": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0
+          },
+          "max_absolute_delta": 0,
+          "passed": true
+        },
+        "first_usage_at": "2026-07-10T13:31:34.219000+00:00",
+        "last_usage_at": "2026-07-10T13:31:35.274000+00:00",
+        "message_count": 2,
+        "production_cache_usage": {
+          "cache_creation_tokens": 3950,
+          "cache_read_tokens": 28792,
+          "input_tokens": 21634,
+          "output_tokens": 100,
+          "total_tokens": 54476
+        },
+        "raw_usage": {
+          "cache_creation_tokens": 3950,
+          "cache_read_tokens": 28792,
+          "input_tokens": 21634,
+          "output_tokens": 100,
+          "total_tokens": 54476
+        },
+        "session_hash": "220216cdfe4f"
+      }
+    },
+    "window_comparisons": {
+      "all-time": {
+        "deltas": {
+          "cache_creation_tokens": 0,
+          "cache_read_tokens": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "total_tokens": 0
+        },
+        "max_absolute_delta": 0,
+        "passed": true
+      },
+      "last-7d": {
+        "deltas": {
+          "cache_creation_tokens": 0,
+          "cache_read_tokens": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "total_tokens": 0
+        },
+        "max_absolute_delta": 0,
+        "passed": true
+      },
+      "latest-session": {
+        "deltas": {
+          "cache_creation_tokens": 0,
+          "cache_read_tokens": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "total_tokens": 0
+        },
+        "max_absolute_delta": 0,
+        "passed": true
+      }
+    }
+  },
+  "codex": {
+    "cached_snapshot": {
+      "plan": "Pro",
+      "source": "OAuth · 系统账号",
+      "updated_at": "2026-07-11T16:03:00Z",
+      "windows": [
+        {
+          "id": "session",
+          "resetsAt": "2026-07-11T20:27:10Z",
+          "usedPercent": 44
+        },
+        {
+          "id": "weekly",
+          "resetsAt": "2026-07-18T15:27:10Z",
+          "usedPercent": 7
+        }
+      ]
+    },
+    "captured_at": "2026-07-11T16:03:13.544169+00:00",
+    "comparison": {
+      "invalid_official_window_ids": [],
+      "missing_official_window_ids": [],
+      "passed": true,
+      "percent_tolerance": 1,
+      "windows": [
+        {
+          "id": "session",
+          "passed": true,
+          "reset_seconds_delta": 0,
+          "used_percent_delta": 0
+        },
+        {
+          "id": "weekly",
+          "passed": true,
+          "reset_seconds_delta": 0,
+          "used_percent_delta": 0
+        }
+      ]
+    },
+    "cost_is_local_estimate": true,
+    "cost_row_count": 2,
+    "credentials": {
+      "account_id_present": true,
+      "api_key_present": false,
+      "oauth_precedence_verified": false,
+      "oauth_tokens_present": true,
+      "source": "oauth_tokens"
+    },
+    "official_windows": [
+      {
+        "id": "session",
+        "limit_window_seconds": 18000,
+        "remaining_percent": 56,
+        "reset_at": 1783801630,
+        "used_percent": 44
+      },
+      {
+        "id": "weekly",
+        "limit_window_seconds": 604800,
+        "remaining_percent": 93,
+        "reset_at": 1784388430,
+        "used_percent": 7
+      }
+    ],
+    "passed": true,
+    "plan": "pro",
+    "verification": {
+      "account_provenance_passed": true,
+      "cache_age_seconds": 13.544169,
+      "cache_source_is_live_system_oauth": true,
+      "cached_identity_available": true,
+      "email_diagnostic_matched": true,
+      "freshness_passed": true,
+      "freshness_tolerance_seconds": 60,
+      "live_identity_available": true,
+      "passed": true,
+      "provenance_strength": "account_id",
+      "provider_account_fingerprint_available": true,
+      "provider_account_fingerprint_matched": true
+    }
+  },
+  "generated_at": "2026-07-11T16:03:09.166117+00:00",
+  "schema_version": 1,
+  "status": "passed"
+}

@@ -1,7 +1,20 @@
 import Foundation
+import CryptoKit
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
+
+public enum CodexAccountFingerprint {
+    private static let domain = "tokenscope/codex/account-id/v1\0"
+
+    public static func make(_ accountID: String?) -> String? {
+        guard let accountID else { return nil }
+        let normalized = accountID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else { return nil }
+        let digest = SHA256.hash(data: Data((domain + normalized).utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+}
 
 public struct CodexOAuthCredentials: Sendable {
     public let accessToken: String

@@ -19,11 +19,27 @@ public struct ClaudeCodeUsageProvider: UsageStatsProvider {
     public func fetchSnapshot() async throws -> ProviderUsageSnapshot {
         let scoped = sessions
             .filter { $0.messageCount > 0 && $0.totalUsage.totalTokens > 0 }
-            .sorted { $0.startedAt > $1.startedAt }
-        let latest = scoped.first
         let validSessionIDs = Set(scoped.map(\.id))
-        let validRecords = usageRecords.filter { validSessionIDs.contains($0.sessionId) }
+        let validRecords = usageRecords.filter {
+            validSessionIDs.contains($0.sessionId) && $0.usage.totalTokens > 0
+        }
         let recordsBySession = Dictionary(grouping: validRecords, by: \.sessionId)
+        let latestActivityBySessionID = recordsBySession.reduce(into: [String: Date]()) { result, entry in
+            result[entry.key] = entry.value.map(\.timestamp).max()
+        }
+        func latestActivityDate(for session: SessionRecord) -> Date {
+            latestActivityBySessionID[session.id] ?? session.endedAt
+        }
+        let latest = scoped.max { lhs, rhs in
+            let lhsActivity = latestActivityDate(for: lhs)
+            let rhsActivity = latestActivityDate(for: rhs)
+            if lhsActivity == rhsActivity {
+                if lhs.startedAt == rhs.startedAt { return lhs.id < rhs.id }
+                return lhs.startedAt < rhs.startedAt
+            }
+            return lhsActivity < rhsActivity
+        }
+        let latestActivityAt = latest.map(latestActivityDate)
         let totalUsage = scoped.reduce(TokenUsage.zero) { partial, session in
             guard let records = recordsBySession[session.id], !records.isEmpty else {
                 return partial + session.totalUsage
@@ -83,7 +99,7 @@ public struct ClaudeCodeUsageProvider: UsageStatsProvider {
                 unitLabel: CoreL10n.string("tokens"),
                 usedPercent: 0,
                 resetsAt: nil,
-                resetDescription: latest.map { $0.endedAt.formatted(date: .abbreviated, time: .shortened) }
+                resetDescription: latestActivityAt?.formatted(date: .abbreviated, time: .shortened)
             )
         ]
 
@@ -151,6 +167,7 @@ public struct CodexUsageProvider: UsageStatsProvider {
             updatedAt: oauthSnapshot.updatedAt,
             sourceLabel: selectedAccount == nil ? CoreL10n.string("OAuth · System account") : CoreL10n.string("OAuth · Added account"),
             identitySummary: oauthSnapshot.identity.email,
+            providerAccountFingerprint: CodexAccountFingerprint.make(oauthSnapshot.identity.providerAccountID),
             planName: oauthSnapshot.identity.planName?.capitalized,
             accountDisplayName: selectedAccount?.email ?? oauthSnapshot.identity.email ?? CoreL10n.string("System account"),
             accountOptions: accountOptions,

@@ -5,10 +5,11 @@ GitHub Actions is the authoritative release-verification environment for TokenSc
 The workflow runs `Scripts/verify_release.sh`, which performs these checks in order:
 
 1. Runs the Swift test suite in parallel with `swift test --parallel`.
-2. Validates Simplified Chinese localization with `python3 Scripts/check_zh_hans_localization.py`.
-3. Builds the release configuration with `swift build -c release`.
-4. Packages `TokenScope.app` with `Scripts/package_app.sh` into a temporary directory outside the repository.
-5. Verifies the packaged app with `codesign --verify --deep --strict --verbose=2`.
+2. Runs the privacy-preserving usage reconciliation script tests with `python3 -m unittest discover -s Tests/ScriptTests -p 'test_*.py'`.
+3. Validates Simplified Chinese localization with `python3 Scripts/check_zh_hans_localization.py`.
+4. Builds the release configuration with `swift build -c release`.
+5. Packages `TokenScope.app` with `Scripts/package_app.sh` into a temporary directory outside the repository.
+6. Verifies the packaged app with `codesign --verify --deep --strict --verbose=2`.
 
 The verification script removes its temporary package directory when it exits. If `APP_OUTPUT_DIR` is provided by the caller, the script packages there and preserves that directory.
 

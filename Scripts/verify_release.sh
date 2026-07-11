@@ -27,6 +27,9 @@ fi
 echo "==> swift test --parallel"
 swift test --parallel
 
+echo "==> usage reconciliation script tests"
+python3 -m unittest discover -s Tests/ScriptTests -p 'test_*.py'
+
 echo "==> checking zh-Hans localization"
 python3 Scripts/check_zh_hans_localization.py
 
