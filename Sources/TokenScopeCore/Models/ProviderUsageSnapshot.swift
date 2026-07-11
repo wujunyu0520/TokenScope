@@ -1,8 +1,15 @@
 import Foundation
 
+public enum UsageWindowKind: String, Codable, Sendable, Hashable {
+    case quota
+    case tokenSummary
+}
+
 public struct UsageWindowSnapshot: Codable, Sendable, Hashable, Identifiable {
     public let id: String
     public let title: String
+    public let kind: UsageWindowKind
+    public let tokenUsage: TokenUsage?
     public let usedValue: Int?
     public let limitValue: Int?
     public let unitLabel: String?
@@ -15,9 +22,15 @@ public struct UsageWindowSnapshot: Codable, Sendable, Hashable, Identifiable {
         max(0, 100 - usedPercent)
     }
 
+    public var quotaResetDate: Date? {
+        kind == .quota ? resetsAt : nil
+    }
+
     public init(
         id: String,
         title: String,
+        kind: UsageWindowKind = .quota,
+        tokenUsage: TokenUsage? = nil,
         usedValue: Int? = nil,
         limitValue: Int? = nil,
         unitLabel: String? = nil,
@@ -28,6 +41,8 @@ public struct UsageWindowSnapshot: Codable, Sendable, Hashable, Identifiable {
     ) {
         self.id = id
         self.title = title
+        self.kind = kind
+        self.tokenUsage = tokenUsage
         self.usedValue = usedValue
         self.limitValue = limitValue
         self.unitLabel = unitLabel

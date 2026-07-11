@@ -26,7 +26,9 @@ public struct ClaudeCodeScanner: Sendable {
         for case let url as URL in enumerator where url.pathExtension == "jsonl" {
             do {
                 let res = try parser.parse(fileURL: url)
-                results.append(res)
+                if res.session.messageCount > 0, res.session.totalUsage.totalTokens > 0 {
+                    results.append(res)
+                }
             } catch {
                 continue
             }

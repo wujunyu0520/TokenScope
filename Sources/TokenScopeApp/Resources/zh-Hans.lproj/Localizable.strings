@@ -74,6 +74,7 @@
 "Cache R" = "缓存读";
 "Cache W" = "缓存写";
 "Cost (est.)" = "成本（估算）";
+"Calculated from local sessions and built-in prices; not an official bill." = "根据本地会话和内置价格计算，不是官方账单。";
 "Started" = "开始时间";
 "Project" = "项目";
 "Models" = "模型";

@@ -90,6 +90,19 @@ public enum CodexOAuthCredentialsStore {
             throw CodexOAuthCredentialsError.decodeFailed(CoreL10n.string("Invalid JSON"))
         }
 
+        if let tokens = json["tokens"] as? [String: Any],
+           let accessToken = stringValue(in: tokens, snakeCaseKey: "access_token", camelCaseKey: "accessToken"),
+           let refreshToken = stringValue(in: tokens, snakeCaseKey: "refresh_token", camelCaseKey: "refreshToken"),
+           !accessToken.isEmpty {
+            return CodexOAuthCredentials(
+                accessToken: accessToken,
+                refreshToken: refreshToken,
+                idToken: stringValue(in: tokens, snakeCaseKey: "id_token", camelCaseKey: "idToken"),
+                accountId: stringValue(in: tokens, snakeCaseKey: "account_id", camelCaseKey: "accountId"),
+                lastRefresh: parseLastRefresh(from: json["last_refresh"])
+            )
+        }
+
         if let apiKey = json["OPENAI_API_KEY"] as? String,
            !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return CodexOAuthCredentials(
@@ -101,22 +114,7 @@ public enum CodexOAuthCredentialsStore {
             )
         }
 
-        guard let tokens = json["tokens"] as? [String: Any] else {
-            throw CodexOAuthCredentialsError.missingTokens
-        }
-        guard let accessToken = stringValue(in: tokens, snakeCaseKey: "access_token", camelCaseKey: "accessToken"),
-              let refreshToken = stringValue(in: tokens, snakeCaseKey: "refresh_token", camelCaseKey: "refreshToken"),
-              !accessToken.isEmpty else {
-            throw CodexOAuthCredentialsError.missingTokens
-        }
-
-        return CodexOAuthCredentials(
-            accessToken: accessToken,
-            refreshToken: refreshToken,
-            idToken: stringValue(in: tokens, snakeCaseKey: "id_token", camelCaseKey: "idToken"),
-            accountId: stringValue(in: tokens, snakeCaseKey: "account_id", camelCaseKey: "accountId"),
-            lastRefresh: parseLastRefresh(from: json["last_refresh"])
-        )
+        throw CodexOAuthCredentialsError.missingTokens
     }
 
     public static func save(
@@ -319,6 +317,11 @@ public struct CodexUsageResponse: Decodable, Sendable {
     public struct RateLimitDetails: Decodable, Sendable {
         public let primaryWindow: WindowSnapshot?
         public let secondaryWindow: WindowSnapshot?
+
+        enum CodingKeys: String, CodingKey {
+            case primaryWindow = "primary_window"
+            case secondaryWindow = "secondary_window"
+        }
     }
 
     public struct WindowSnapshot: Decodable, Sendable {
