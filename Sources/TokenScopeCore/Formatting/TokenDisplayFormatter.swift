@@ -33,4 +33,8 @@ public enum TokenDisplayFormatter {
         }
         return value > 0 ? "<0.0001亿" : ">-0.0001亿"
     }
+
+    public static func usageSummary(_ value: Int) -> String {
+        value == 0 ? "0亿" : hundredMillions(value)
+    }
 }

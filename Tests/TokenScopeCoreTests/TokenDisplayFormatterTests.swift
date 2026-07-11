@@ -15,4 +15,13 @@ final class TokenDisplayFormatterTests: XCTestCase {
         XCTAssertEqual(TokenDisplayFormatter.hundredMillions(10_000), "0.0001亿")
         XCTAssertEqual(TokenDisplayFormatter.hundredMillions(1_000), "<0.0001亿")
     }
+
+    func testFormatsProviderUsageSummaryInHundredMillions() {
+        XCTAssertEqual(TokenDisplayFormatter.usageSummary(2_906_645_970), "29.1亿")
+        XCTAssertEqual(TokenDisplayFormatter.usageSummary(16_053_650), "0.16亿")
+        XCTAssertEqual(TokenDisplayFormatter.usageSummary(236_056), "0.002亿")
+        XCTAssertEqual(TokenDisplayFormatter.usageSummary(28_718), "0.0003亿")
+        XCTAssertEqual(TokenDisplayFormatter.usageSummary(2_878), "<0.0001亿")
+        XCTAssertEqual(TokenDisplayFormatter.usageSummary(0), "0亿")
+    }
 }
