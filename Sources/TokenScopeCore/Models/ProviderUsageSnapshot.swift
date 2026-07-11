@@ -72,6 +72,7 @@ public struct ProviderUsageSnapshot: Codable, Sendable, Hashable, Identifiable {
     public let updatedAt: Date
     public let sourceLabel: String
     public let identitySummary: String?
+    public let providerAccountFingerprint: String?
     public let planName: String?
     public let accountDisplayName: String?
     public let accountOptions: [Account]
@@ -86,6 +87,7 @@ public struct ProviderUsageSnapshot: Codable, Sendable, Hashable, Identifiable {
         updatedAt: Date,
         sourceLabel: String,
         identitySummary: String? = nil,
+        providerAccountFingerprint: String? = nil,
         planName: String? = nil,
         accountDisplayName: String? = nil,
         accountOptions: [Account] = [],
@@ -99,6 +101,7 @@ public struct ProviderUsageSnapshot: Codable, Sendable, Hashable, Identifiable {
         self.updatedAt = updatedAt
         self.sourceLabel = sourceLabel
         self.identitySummary = identitySummary
+        self.providerAccountFingerprint = providerAccountFingerprint
         self.planName = planName
         self.accountDisplayName = accountDisplayName
         self.accountOptions = accountOptions

@@ -82,6 +82,107 @@ final class ProviderUsageFixTests: XCTestCase {
         XCTAssertEqual(snapshot.windows[2].tokenUsage, usage)
     }
 
+    func testClaudeLatestSessionUsesMostRecentUsageActivity() async throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let newerStart = makeSession(
+            id: "newer-start",
+            startedAt: now.addingTimeInterval(-60 * 60),
+            usage: TokenUsage(inputTokens: 10),
+            messageCount: 1
+        )
+        let laterActivity = makeSession(
+            id: "later-activity",
+            startedAt: now.addingTimeInterval(-2 * 60 * 60),
+            usage: TokenUsage(inputTokens: 200, outputTokens: 20),
+            messageCount: 1
+        )
+        let records = [
+            makeRecord(
+                sessionID: "newer-start",
+                index: 0,
+                timestamp: now.addingTimeInterval(-30 * 60),
+                usage: TokenUsage(inputTokens: 10)
+            ),
+            makeRecord(
+                sessionID: "later-activity",
+                index: 0,
+                timestamp: now.addingTimeInterval(-5 * 60),
+                usage: TokenUsage(inputTokens: 200, outputTokens: 20)
+            ),
+            makeRecord(
+                sessionID: "newer-start",
+                index: 1,
+                timestamp: now.addingTimeInterval(-60),
+                usage: .zero
+            ),
+        ]
+
+        let snapshot = try await ClaudeCodeUsageProvider(
+            sessions: [newerStart, laterActivity],
+            usageRecords: records,
+            now: now
+        ).fetchSnapshot()
+
+        let latest = try XCTUnwrap(snapshot.windows.first { $0.id == "latest-session" })
+        XCTAssertEqual(latest.tokenUsage, TokenUsage(inputTokens: 200, outputTokens: 20))
+        XCTAssertEqual(latest.usedValue, 220)
+    }
+
+    func testClaudeLatestSessionFallsBackToEndedAtWhenRecordsAreMissing() async throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let recorded = makeSession(
+            id: "recorded",
+            startedAt: now.addingTimeInterval(-2 * 60 * 60),
+            endedAt: now.addingTimeInterval(-5 * 60),
+            usage: TokenUsage(inputTokens: 10),
+            messageCount: 1
+        )
+        let cachedWithoutRecords = makeSession(
+            id: "cached-without-records",
+            startedAt: now.addingTimeInterval(-3 * 60 * 60),
+            endedAt: now.addingTimeInterval(-2 * 60),
+            usage: TokenUsage(inputTokens: 300),
+            messageCount: 1
+        )
+        let records = [
+            makeRecord(
+                sessionID: "recorded",
+                index: 0,
+                timestamp: now.addingTimeInterval(-5 * 60),
+                usage: TokenUsage(inputTokens: 10)
+            ),
+        ]
+
+        let snapshot = try await ClaudeCodeUsageProvider(
+            sessions: [recorded, cachedWithoutRecords],
+            usageRecords: records,
+            now: now
+        ).fetchSnapshot()
+
+        XCTAssertEqual(snapshot.windows.first { $0.id == "latest-session" }?.usedValue, 300)
+    }
+
+    func testClaudeLatestSessionUsesDeterministicIDTieBreak() async throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let startedAt = now.addingTimeInterval(-60 * 60)
+        let sessions = [
+            makeSession(id: "a", startedAt: startedAt, usage: TokenUsage(inputTokens: 10), messageCount: 1),
+            makeSession(id: "b", startedAt: startedAt, usage: TokenUsage(inputTokens: 20), messageCount: 1),
+        ]
+        let records = [
+            makeRecord(sessionID: "a", index: 0, timestamp: now, usage: TokenUsage(inputTokens: 10)),
+            makeRecord(sessionID: "b", index: 0, timestamp: now, usage: TokenUsage(inputTokens: 20)),
+        ]
+
+        let snapshot = try await ClaudeCodeUsageProvider(
+            sessions: sessions,
+            usageRecords: records,
+            now: now
+        ).fetchSnapshot()
+
+        XCTAssertEqual(snapshot.windows.first { $0.id == "latest-session" }?.usedValue, 20)
+    }
+
     func testClaudeScannerSkipsLogsWithoutUsage() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("claude-scan-\(UUID().uuidString)", isDirectory: true)
@@ -135,6 +236,37 @@ final class ProviderUsageFixTests: XCTestCase {
         XCTAssertEqual(credentials.accessToken, "oauth-access")
         XCTAssertEqual(credentials.refreshToken, "oauth-refresh")
         XCTAssertEqual(credentials.accountId, "account-1")
+    }
+
+    func testCodexAccountFingerprintIsStableAndDoesNotExposeAccountID() {
+        let fingerprint = CodexAccountFingerprint.make(" account-1 ")
+
+        XCTAssertEqual(
+            fingerprint,
+            "e09b8d91b2532962cef5b852d9027cca6f0d2e7e4bfefc0452365774a1b0dd9d"
+        )
+        XCTAssertFalse(fingerprint?.contains("account-1") == true)
+        XCTAssertNil(CodexAccountFingerprint.make("   "))
+    }
+
+    func testProviderSnapshotRoundTripsCodexAccountFingerprint() throws {
+        let snapshot = ProviderUsageSnapshot(
+            provider: .codex,
+            updatedAt: Date(timeIntervalSince1970: 1_800_000_000),
+            sourceLabel: "OAuth",
+            providerAccountFingerprint: "synthetic-fingerprint"
+        )
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        let decoded = try decoder.decode(
+            ProviderUsageSnapshot.self,
+            from: encoder.encode(snapshot)
+        )
+
+        XCTAssertEqual(decoded.providerAccountFingerprint, "synthetic-fingerprint")
     }
 
     func testProviderUsageCacheRejectsVersionOneAndRoundTripsVersionTwo() throws {
@@ -197,6 +329,7 @@ final class ProviderUsageFixTests: XCTestCase {
     private func makeSession(
         id: String,
         startedAt: Date,
+        endedAt: Date? = nil,
         usage: TokenUsage,
         messageCount: Int
     ) -> SessionRecord {
@@ -207,7 +340,7 @@ final class ProviderUsageFixTests: XCTestCase {
             projectPath: "/tmp/project",
             sourceFile: URL(fileURLWithPath: "/tmp/\(id).jsonl"),
             startedAt: startedAt,
-            endedAt: startedAt,
+            endedAt: endedAt ?? startedAt,
             modelsUsed: ["claude-test"],
             totalUsage: usage,
             messageCount: messageCount
