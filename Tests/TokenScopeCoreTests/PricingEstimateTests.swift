@@ -124,6 +124,7 @@ final class PricingEstimateTests: XCTestCase {
             cacheReadTokens: 700
         )
         let record = record(
+            sessionID: "longcat",
             provider: .openCode,
             upstreamProviderID: "longcat",
             model: "LongCat-2.0",
