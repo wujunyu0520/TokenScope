@@ -217,7 +217,7 @@ public struct OpenCodeSQLiteParser: Sendable {
 
     private func makeBreakdowns(from messages: [OpenCodeSQLiteAssistantMessage]) -> [ProviderUsageBreakdown] {
         var accumulators: [String: OpenCodeBreakdownAccumulator] = [:]
-        for message in messages where message.totalTokens > 0 || message.costUSD > 0 {
+        for message in messages where message.totalTokens > 0 {
             let key = "\(message.providerID)\u{1f}\(message.modelID)"
             accumulators[key, default: OpenCodeBreakdownAccumulator(
                 groupName: groupName(for: message.providerID),
@@ -408,7 +408,6 @@ private struct OpenCodeBreakdownAccumulator {
     var reasoningTokens = 0
     var cacheReadTokens = 0
     var cacheCreationTokens = 0
-    var costUSD: Double = 0
 
     mutating func add(_ message: OpenCodeSQLiteAssistantMessage) {
         sessionIDs.insert(message.sessionID)
@@ -418,7 +417,6 @@ private struct OpenCodeBreakdownAccumulator {
         reasoningTokens += message.reasoningTokens
         cacheReadTokens += message.cacheReadTokens
         cacheCreationTokens += message.cacheCreationTokens
-        costUSD += message.costUSD
     }
 
     var snapshot: ProviderUsageBreakdown {
@@ -433,7 +431,8 @@ private struct OpenCodeBreakdownAccumulator {
             reasoningTokens: reasoningTokens,
             cacheReadTokens: cacheReadTokens,
             cacheCreationTokens: cacheCreationTokens,
-            costUSD: costUSD
+            estimatedCostUSD: 0,
+            pricingCoverage: .unpriced
         )
     }
 }

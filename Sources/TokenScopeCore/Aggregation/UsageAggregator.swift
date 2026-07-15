@@ -26,6 +26,43 @@ public struct MonthlyBucket: Sendable, Hashable, Identifiable {
     public let days: [MonthlyDayBucket]
 }
 
+public struct PricingCoverageSummary: Sendable, Hashable {
+    public let pricedRecordCount: Int
+    public let freeRecordCount: Int
+    public let unpricedRecordCount: Int
+    public let unpricedModels: [String]
+
+    public var isComplete: Bool { unpricedRecordCount == 0 }
+
+    public init(
+        pricedRecordCount: Int = 0,
+        freeRecordCount: Int = 0,
+        unpricedRecordCount: Int = 0,
+        unpricedModels: [String] = []
+    ) {
+        self.pricedRecordCount = pricedRecordCount
+        self.freeRecordCount = freeRecordCount
+        self.unpricedRecordCount = unpricedRecordCount
+        self.unpricedModels = unpricedModels
+    }
+}
+
+public struct CostAggregationSummary: Sendable, Hashable {
+    public let usage: TokenUsage
+    public let costUSD: Double
+    public let pricingCoverage: PricingCoverageSummary
+
+    public init(
+        usage: TokenUsage,
+        costUSD: Double,
+        pricingCoverage: PricingCoverageSummary
+    ) {
+        self.usage = usage
+        self.costUSD = costUSD
+        self.pricingCoverage = pricingCoverage
+    }
+}
+
 public struct AggregationFilter: Sendable {
     public var dateRange: ClosedRange<Date>?
     public var providers: Set<Provider>?
@@ -65,15 +102,17 @@ public struct UsageAggregator: Sendable {
     }
 
     public func dailyBuckets(records: [UsageRecord], filter: AggregationFilter = .init()) -> [DailyBucket] {
-        var map: [String: (day: Date, provider: Provider, model: String, usage: TokenUsage)] = [:]
+        var map: [String: (day: Date, provider: Provider, model: String, usage: TokenUsage, cost: Double)] = [:]
         for r in records where filter.matches(r) {
             let day = calendar.startOfDay(for: r.timestamp)
             let key = "\(day.timeIntervalSince1970)|\(r.provider.rawValue)|\(r.model)"
+            let cost = priceBook.estimate(for: r).estimatedUSD
             if var existing = map[key] {
                 existing.usage += r.usage
+                existing.cost += cost
                 map[key] = existing
             } else {
-                map[key] = (day, r.provider, r.model, r.usage)
+                map[key] = (day, r.provider, r.model, r.usage, cost)
             }
         }
         return map.values
@@ -83,7 +122,7 @@ public struct UsageAggregator: Sendable {
                     provider: entry.provider,
                     model: entry.model,
                     usage: entry.usage,
-                    costUSD: priceBook.cost(for: entry.usage, model: entry.model)
+                    costUSD: entry.cost
                 )
             }
             .sorted { a, b in
@@ -97,7 +136,7 @@ public struct UsageAggregator: Sendable {
         var dailyMap: [Date: (usage: TokenUsage, cost: Double, messageCount: Int)] = [:]
         for r in records where filter.matches(r) {
             let day = calendar.startOfDay(for: r.timestamp)
-            let cost = priceBook.cost(for: r.usage, model: r.model)
+            let cost = priceBook.estimate(for: r).estimatedUSD
             if var existing = dailyMap[day] {
                 existing.usage += r.usage
                 existing.cost += cost
@@ -138,12 +177,45 @@ public struct UsageAggregator: Sendable {
     }
 
     public func totals(records: [UsageRecord], filter: AggregationFilter = .init()) -> (usage: TokenUsage, costUSD: Double) {
+        let summary = costSummary(records: records, filter: filter)
+        return (summary.usage, summary.costUSD)
+    }
+
+    public func costSummary(
+        records: [UsageRecord],
+        filter: AggregationFilter = .init()
+    ) -> CostAggregationSummary {
         var usage = TokenUsage.zero
         var cost = 0.0
+        var pricedRecordCount = 0
+        var freeRecordCount = 0
+        var unpricedRecordCount = 0
+        var unpricedModels = Set<String>()
+
         for r in records where filter.matches(r) {
             usage += r.usage
-            cost += priceBook.cost(for: r.usage, model: r.model)
+            let estimate = priceBook.estimate(for: r)
+            cost += estimate.estimatedUSD
+            switch estimate.coverage {
+            case .priced:
+                pricedRecordCount += 1
+            case .free:
+                freeRecordCount += 1
+            case .unpriced:
+                unpricedRecordCount += 1
+                unpricedModels.insert(r.model)
+            }
         }
-        return (usage, cost)
+
+        return CostAggregationSummary(
+            usage: usage,
+            costUSD: cost,
+            pricingCoverage: PricingCoverageSummary(
+                pricedRecordCount: pricedRecordCount,
+                freeRecordCount: freeRecordCount,
+                unpricedRecordCount: unpricedRecordCount,
+                unpricedModels: unpricedModels.sorted()
+            )
+        )
     }
 }

@@ -1,7 +1,7 @@
 import Foundation
 
 public struct ProviderUsageCacheSnapshot: Codable, Sendable {
-    public static let currentVersion = 2
+    public static let currentVersion = 3
 
     public let version: Int
     public let updatedAt: Date

@@ -57,11 +57,21 @@ public struct ProviderUsageCostSnapshot: Codable, Sendable, Hashable {
     public let title: String
     public let amountText: String
     public let detailText: String?
+    public let unpricedRecordCount: Int
+    public let unpricedModels: [String]
 
-    public init(title: String, amountText: String, detailText: String? = nil) {
+    public init(
+        title: String,
+        amountText: String,
+        detailText: String? = nil,
+        unpricedRecordCount: Int = 0,
+        unpricedModels: [String] = []
+    ) {
         self.title = title
         self.amountText = amountText
         self.detailText = detailText
+        self.unpricedRecordCount = unpricedRecordCount
+        self.unpricedModels = unpricedModels
     }
 }
 
@@ -78,7 +88,8 @@ public struct ProviderUsageBreakdown: Codable, Sendable, Hashable, Identifiable 
     public let reasoningTokens: Int
     public let cacheReadTokens: Int
     public let cacheCreationTokens: Int
-    public let costUSD: Double
+    public let estimatedCostUSD: Double
+    public let pricingCoverage: PricingCoverage
 
     public var totalTokens: Int {
         inputTokens + outputTokens + reasoningTokens + cacheReadTokens + cacheCreationTokens
@@ -95,7 +106,8 @@ public struct ProviderUsageBreakdown: Codable, Sendable, Hashable, Identifiable 
         reasoningTokens: Int,
         cacheReadTokens: Int,
         cacheCreationTokens: Int,
-        costUSD: Double
+        estimatedCostUSD: Double,
+        pricingCoverage: PricingCoverage
     ) {
         self.groupName = groupName
         self.providerID = providerID
@@ -107,7 +119,8 @@ public struct ProviderUsageBreakdown: Codable, Sendable, Hashable, Identifiable 
         self.reasoningTokens = reasoningTokens
         self.cacheReadTokens = cacheReadTokens
         self.cacheCreationTokens = cacheCreationTokens
-        self.costUSD = costUSD
+        self.estimatedCostUSD = estimatedCostUSD
+        self.pricingCoverage = pricingCoverage
     }
 }
 
@@ -194,6 +207,25 @@ public struct ProviderUsageSnapshot: Codable, Sendable, Hashable, Identifiable {
         self.costRows = try container.decodeIfPresent([ProviderUsageCostSnapshot].self, forKey: .costRows) ?? []
         self.modelBreakdowns = try container.decodeIfPresent([ProviderUsageBreakdown].self, forKey: .modelBreakdowns) ?? []
         self.notice = try container.decodeIfPresent(String.self, forKey: .notice)
+    }
+
+    public func replacingCostRows(_ costRows: [ProviderUsageCostSnapshot]) -> ProviderUsageSnapshot {
+        ProviderUsageSnapshot(
+            provider: provider,
+            updatedAt: updatedAt,
+            sourceLabel: sourceLabel,
+            identitySummary: identitySummary,
+            providerAccountFingerprint: providerAccountFingerprint,
+            planName: planName,
+            accountDisplayName: accountDisplayName,
+            accountOptions: accountOptions,
+            selectedAccountID: selectedAccountID,
+            windows: windows,
+            creditsText: creditsText,
+            costRows: costRows,
+            modelBreakdowns: modelBreakdowns,
+            notice: notice
+        )
     }
 }
 

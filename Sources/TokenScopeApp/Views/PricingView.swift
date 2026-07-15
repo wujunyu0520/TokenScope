@@ -5,7 +5,7 @@ struct PricingView: View {
     @EnvironmentObject var store: AppStore
     @State private var prices: [ModelPrice] = []
     @State private var sortOrder: [KeyPathComparator<ModelPrice>] = [
-        KeyPathComparator(\.provider.rawValue),
+        KeyPathComparator(\.vendor.rawValue),
         KeyPathComparator(\.model),
     ]
     @State private var showForm = false
@@ -28,13 +28,20 @@ struct PricingView: View {
 
     var body: some View {
         Table(sortedPrices, selection: $selectedID, sortOrder: $sortOrder) {
-            TableColumn(L10n.string("Provider"), value: \.provider.rawValue) { p in
-                Text(p.provider.displayName)
+            TableColumn(L10n.string("Vendor"), value: \.vendor.rawValue) { p in
+                Text(p.vendor.displayName)
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { beginEditing(p) }
             }
             TableColumn(L10n.string("Model"), value: \.model) { p in
                 Text(p.model)
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 2) { beginEditing(p) }
+            }
+            TableColumn(L10n.string("Aliases")) { p in
+                Text(p.aliases.isEmpty ? "—" : p.aliases.joined(separator: ", "))
+                    .lineLimit(1)
+                    .foregroundStyle(p.aliases.isEmpty ? .secondary : .primary)
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { beginEditing(p) }
             }
@@ -63,18 +70,23 @@ struct PricingView: View {
                     .onTapGesture(count: 2) { beginEditing(p) }
             }
             TableColumn(L10n.string("Source")) { p in
-                Text(sourceText(p.source))
-                    .font(.caption)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(
-                        p.source == .user
-                            ? Color.accentColor.opacity(0.2)
-                            : Color.secondary.opacity(0.1),
-                        in: Capsule()
-                    )
+                HStack(spacing: 5) {
+                    Text(sourceText(p.source))
+                        .font(.caption)
+                    if let sourceURL = p.sourceURL {
+                        Link(destination: sourceURL) {
+                            Image(systemName: "arrow.up.right.square")
+                        }
+                        .help(L10n.string("Open official pricing source"))
+                    }
+                }
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { beginEditing(p) }
+            }
+            TableColumn(L10n.string("Verified")) { p in
+                Text(p.verifiedOn ?? "—")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .contextMenu(forSelectionType: String.self) { ids in
@@ -82,7 +94,7 @@ struct PricingView: View {
                 Button(L10n.string("Edit…")) { editing = p; showForm = true }
                 if p.source == .user {
                     Button(L10n.string("Delete Override"), role: .destructive) {
-                        store.removePrice(model: p.model)
+                        store.removePrice(vendor: p.vendor, model: p.model)
                     }
                 }
             }
@@ -137,13 +149,15 @@ private struct PriceFormSheet: View {
     let onSave: (ModelPrice) -> Void
     @Environment(\.dismiss) private var dismiss
 
-    @State private var provider: Provider = .anthropicAPI
+    @State private var vendor: PricingVendor = .anthropic
     @State private var model: String = ""
+    @State private var aliasesStr: String = ""
     @State private var inputStr: String = "0"
     @State private var outputStr: String = "0"
     @State private var cacheReadStr: String = "0"
     @State private var cacheCreateStr: String = "0"
     @State private var currency: String = "USD"
+    @State private var isFree = false
 
     private var isEditing: Bool { initial != nil }
 
@@ -163,14 +177,18 @@ private struct PriceFormSheet: View {
 
             Form {
                 Section(L10n.string("Model")) {
-                    Picker(L10n.string("Provider"), selection: $provider) {
-                        ForEach(Provider.allCases, id: \.self) { p in
-                            Text(p.displayName).tag(p)
+                    Picker(L10n.string("Vendor"), selection: $vendor) {
+                        ForEach(PricingVendor.allCases, id: \.self) { item in
+                            Text(item.displayName).tag(item)
                         }
                     }
+                    .disabled(isEditing)
                     TextField(L10n.string("Model name (e.g. glm-4.7)"), text: $model)
                         .disabled(isEditing)
                         .textFieldStyle(.roundedBorder)
+                    TextField(L10n.string("Aliases (comma separated)"), text: $aliasesStr)
+                        .textFieldStyle(.roundedBorder)
+                    Toggle(L10n.string("Free model"), isOn: $isFree)
                 }
                 Section(L10n.string("Pricing (USD per 1M tokens)")) {
                     LabeledContent(L10n.string("Input")) {
@@ -196,15 +214,25 @@ private struct PriceFormSheet: View {
                 Button(L10n.string("Cancel")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button(isEditing ? L10n.string("Save") : L10n.string("Add")) {
+                    let aliases = aliasesStr
+                        .split(separator: ",")
+                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        .filter { !$0.isEmpty }
                     let price = ModelPrice(
-                        provider: provider,
+                        provider: vendor.legacyProvider,
+                        vendor: vendor,
                         model: model.trimmingCharacters(in: .whitespaces),
+                        aliases: aliases,
                         inputPerMillion: Double(inputStr) ?? 0,
                         outputPerMillion: Double(outputStr) ?? 0,
                         cacheReadPerMillion: Double(cacheReadStr) ?? 0,
                         cacheCreationPerMillion: Double(cacheCreateStr) ?? 0,
                         currency: currency,
-                        source: .user
+                        source: .user,
+                        sourceURL: initial?.sourceURL,
+                        verifiedOn: initial?.verifiedOn,
+                        isFree: isFree,
+                        rule: initial?.rule ?? .standard
                     )
                     onSave(price)
                     dismiss()
@@ -217,13 +245,15 @@ private struct PriceFormSheet: View {
         .frame(minWidth: 480, minHeight: 460)
         .onAppear {
             if let p = initial {
-                provider = p.provider
+                vendor = p.vendor
                 model = p.model
+                aliasesStr = p.aliases.joined(separator: ", ")
                 inputStr = format(p.inputPerMillion)
                 outputStr = format(p.outputPerMillion)
                 cacheReadStr = format(p.cacheReadPerMillion)
                 cacheCreateStr = format(p.cacheCreationPerMillion)
                 currency = p.currency
+                isFree = p.isFree
             }
         }
     }

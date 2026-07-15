@@ -6,6 +6,41 @@ struct SessionDetailView: View {
     @EnvironmentObject var store: AppStore
     @Environment(\.dismiss) private var dismiss
 
+    private var costSummary: CostAggregationSummary {
+        _ = store.pricesRevision
+        if !detail.usageRecords.isEmpty {
+            return store.aggregator.costSummary(records: detail.usageRecords)
+        }
+        guard let model = detail.session.modelsUsed.first,
+              detail.session.totalUsage.totalTokens > 0 else {
+            return CostAggregationSummary(
+                usage: detail.session.totalUsage,
+                costUSD: 0,
+                pricingCoverage: PricingCoverageSummary()
+            )
+        }
+        let record = UsageRecord(
+            sessionId: detail.session.id,
+            messageIndex: 0,
+            provider: detail.session.provider,
+            accountId: detail.session.accountId,
+            model: model,
+            timestamp: detail.session.endedAt,
+            usage: detail.session.totalUsage
+        )
+        return store.aggregator.costSummary(records: [record])
+    }
+
+    private var costText: String {
+        let coverage = costSummary.pricingCoverage
+        guard !coverage.isComplete else {
+            return String(format: "$%.4f", costSummary.costUSD)
+        }
+        return costSummary.costUSD > 0
+            ? String(format: "$%.4f*", costSummary.costUSD)
+            : L10n.string("Unpriced")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             header
@@ -38,8 +73,16 @@ struct SessionDetailView: View {
                     HStack(spacing: 16) {
                         Label("\(detail.session.messageCount)", systemImage: "text.bubble")
                         Label(formatTokenAmount(detail.session.totalUsage.totalTokens), systemImage: "number")
-                        Text(String(format: "$%.4f", store.priceBook.cost(for: detail.session.totalUsage, model: detail.session.modelsUsed.first ?? "")))
+                        Text(costText)
                             .monospacedDigit()
+                            .help(
+                                costSummary.pricingCoverage.isComplete
+                                    ? L10n.string("Estimated at current official API list prices.")
+                                    : L10n.string(
+                                        "Partial estimate; unpriced models: %@",
+                                        costSummary.pricingCoverage.unpricedModels.joined(separator: ", ")
+                                    )
+                            )
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)

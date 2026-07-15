@@ -16,6 +16,7 @@ struct DashboardView: View {
     @State private var buckets: [DailyBucket] = []
     @State private var monthlyBuckets: [MonthlyBucket] = []
     @State private var totals: (usage: TokenUsage, costUSD: Double) = (.zero, 0)
+    @State private var pricingCoverage = PricingCoverageSummary()
     @State private var availableModels: [String] = []
     @State private var modelPalette: [String: Color] = [:]
     @State private var sourceTotals: [Provider: (usage: TokenUsage, cost: Double)] = [:]
@@ -57,7 +58,7 @@ struct DashboardView: View {
 
     private var filterKey: String {
         let providers = selectedProviders.map(\.rawValue).sorted().joined(separator: ",")
-        return "\(startDate.timeIntervalSince1970)|\(endDate.timeIntervalSince1970)|\(selectedModels.sorted().joined(separator: ","))|\(providers)|\(store.usageRecords.count)"
+        return "\(startDate.timeIntervalSince1970)|\(endDate.timeIntervalSince1970)|\(selectedModels.sorted().joined(separator: ","))|\(providers)|\(store.usageRecords.count)|\(store.pricesRevision)"
     }
 
     private func displayedTokens(for usage: TokenUsage) -> Int {
@@ -73,7 +74,7 @@ struct DashboardView: View {
         let f = filter
         let newBuckets = store.aggregator.dailyBuckets(records: store.usageRecords, filter: f)
         let newMonthlyBuckets = store.aggregator.monthlyBuckets(records: store.usageRecords, filter: f)
-        let newTotals = store.aggregator.totals(records: store.usageRecords, filter: f)
+        let newSummary = store.aggregator.costSummary(records: store.usageRecords, filter: f)
         let models = Array(Set(store.usageRecords.map(\.model))).sorted()
         var palette: [String: Color] = [:]
         let baseColors: [Color] = [.blue, .orange, .green, .purple, .pink, .teal, .yellow, .indigo, .red, .mint, .cyan, .brown]
@@ -106,7 +107,8 @@ struct DashboardView: View {
         }
         self.buckets = newBuckets
         self.monthlyBuckets = newMonthlyBuckets
-        self.totals = newTotals
+        self.totals = (newSummary.usage, newSummary.costUSD)
+        self.pricingCoverage = newSummary.pricingCoverage
         self.availableModels = models
         self.modelPalette = palette
         self.sourceTotals = byProvider
@@ -169,13 +171,29 @@ struct DashboardView: View {
     }
 
     private var headerStats: some View {
-        HStack(spacing: 16) {
-            StatCard(title: L10n.string("Sessions"), value: "\(store.sessions.count)")
-            StatCard(title: L10n.string("Total Tokens"), value: formatTokenAmount(totals.usage.totalTokens))
-            StatCard(title: L10n.string("Input"), value: formatTokenAmount(totals.usage.inputTokens))
-            StatCard(title: L10n.string("Output"), value: formatTokenAmount(totals.usage.outputTokens))
-            StatCard(title: L10n.string("Cache R"), value: formatTokenAmount(totals.usage.cacheReadTokens))
-            StatCard(title: L10n.string("Cost (est.)"), value: String(format: "$%.2f", totals.costUSD))
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 16) {
+                StatCard(title: L10n.string("Sessions"), value: "\(store.sessions.count)")
+                StatCard(title: L10n.string("Total Tokens"), value: formatTokenAmount(totals.usage.totalTokens))
+                StatCard(title: L10n.string("Input"), value: formatTokenAmount(totals.usage.inputTokens))
+                StatCard(title: L10n.string("Output"), value: formatTokenAmount(totals.usage.outputTokens))
+                StatCard(title: L10n.string("Cache R"), value: formatTokenAmount(totals.usage.cacheReadTokens))
+                StatCard(title: L10n.string("API cost estimate"), value: String(format: "$%.2f", totals.costUSD))
+            }
+            if !pricingCoverage.isComplete {
+                Label(
+                    L10n.string(
+                        "%d records are excluded from cost because %d models are unpriced: %@",
+                        pricingCoverage.unpricedRecordCount,
+                        pricingCoverage.unpricedModels.count,
+                        pricingCoverage.unpricedModels.joined(separator: ", ")
+                    ),
+                    systemImage: "exclamationmark.triangle"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+                .lineLimit(2)
+            }
         }
     }
 

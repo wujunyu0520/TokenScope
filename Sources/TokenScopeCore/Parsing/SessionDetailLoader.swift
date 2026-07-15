@@ -4,15 +4,15 @@ public struct SessionDetailLoader: Sendable {
     public init() {}
 
     public func loadDetail(for session: SessionRecord, usageRecords: [UsageRecord]) throws -> SessionDetail {
+        let records = usageRecords
+            .filter { $0.provider == session.provider && $0.sessionId == session.id }
+            .sorted { $0.timestamp < $1.timestamp }
         switch session.provider {
         case .claudeCode:
-            return try loadClaudeDetail(for: session)
+            return try loadClaudeDetail(for: session, usageRecords: records)
         case .openCode:
-            return try loadOpenCodeDetail(for: session)
+            return try loadOpenCodeDetail(for: session, usageRecords: records)
         case .codex:
-            let records = usageRecords
-                .filter { $0.provider == .codex && $0.sessionId == session.id }
-                .sorted { $0.timestamp < $1.timestamp }
             return SessionDetail(
                 session: session,
                 mode: .usageOnly,
@@ -23,13 +23,16 @@ public struct SessionDetailLoader: Sendable {
             return SessionDetail(
                 session: session,
                 mode: .usageOnly,
-                usageRecords: usageRecords.filter { $0.provider == session.provider && $0.sessionId == session.id }.sorted { $0.timestamp < $1.timestamp },
+                usageRecords: records,
                 notice: CoreL10n.string("Detailed transcript is unavailable for this provider.")
             )
         }
     }
 
-    private func loadClaudeDetail(for session: SessionRecord) throws -> SessionDetail {
+    private func loadClaudeDetail(
+        for session: SessionRecord,
+        usageRecords: [UsageRecord]
+    ) throws -> SessionDetail {
         let data = try Data(contentsOf: session.sourceFile)
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -69,10 +72,18 @@ public struct SessionDetailLoader: Sendable {
             ))
         }
 
-        return SessionDetail(session: session, mode: .messages, messages: messages.sorted { $0.timestamp < $1.timestamp })
+        return SessionDetail(
+            session: session,
+            mode: .messages,
+            messages: messages.sorted { $0.timestamp < $1.timestamp },
+            usageRecords: usageRecords
+        )
     }
 
-    private func loadOpenCodeDetail(for session: SessionRecord) throws -> SessionDetail {
+    private func loadOpenCodeDetail(
+        for session: SessionRecord,
+        usageRecords: [UsageRecord]
+    ) throws -> SessionDetail {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let messageDir = home
             .appendingPathComponent(".local/share/opencode/storage/message", isDirectory: true)
@@ -97,7 +108,7 @@ public struct SessionDetailLoader: Sendable {
             let tokens = obj["tokens"] as? [String: Any]
             let cache = tokens?["cache"] as? [String: Any]
             let usage = TokenUsage(
-                inputTokens: max(0, ((tokens?["input"] as? Int) ?? 0) - ((cache?["read"] as? Int) ?? 0)),
+                inputTokens: (tokens?["input"] as? Int) ?? 0,
                 outputTokens: ((tokens?["output"] as? Int) ?? 0) + ((tokens?["reasoning"] as? Int) ?? 0),
                 cacheCreationTokens: (cache?["write"] as? Int) ?? 0,
                 cacheReadTokens: (cache?["read"] as? Int) ?? 0
@@ -120,6 +131,7 @@ public struct SessionDetailLoader: Sendable {
             session: session,
             mode: .messages,
             messages: messages.sorted { $0.timestamp < $1.timestamp },
+            usageRecords: usageRecords,
             notice: CoreL10n.string("OpenCode currently exposes summaries, usage, and errors rather than full transcript text.")
         )
     }

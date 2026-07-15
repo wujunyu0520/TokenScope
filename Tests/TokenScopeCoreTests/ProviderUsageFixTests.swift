@@ -269,8 +269,8 @@ final class ProviderUsageFixTests: XCTestCase {
         XCTAssertEqual(decoded.providerAccountFingerprint, "synthetic-fingerprint")
     }
 
-    func testProviderUsageCacheRejectsVersionOneAndRoundTripsVersionTwo() throws {
-        XCTAssertEqual(ProviderUsageCacheSnapshot.currentVersion, 2)
+    func testProviderUsageCacheRejectsLegacyVersionsAndRoundTripsVersionThree() throws {
+        XCTAssertEqual(ProviderUsageCacheSnapshot.currentVersion, 3)
 
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("provider-cache-\(UUID().uuidString).json")
@@ -284,8 +284,12 @@ final class ProviderUsageFixTests: XCTestCase {
         let cache = ProviderUsageCache(storageURL: url)
         XCTAssertNil(cache.load())
 
+        let versionTwo = ProviderUsageCacheSnapshot(version: 2, updatedAt: .distantPast, snapshots: [])
+        try encoder.encode(versionTwo).write(to: url)
+        XCTAssertNil(cache.load())
+
         cache.save(snapshots: [])
-        XCTAssertEqual(cache.load()?.version, 2)
+        XCTAssertEqual(cache.load()?.version, 3)
     }
 
     func testProviderUsageCacheRejectsNonemptyLegacyVersionOneFixture() throws {
