@@ -145,9 +145,9 @@ final class PricingEstimateTests: XCTestCase {
         let snapshot = try await OpenCodeUsageProvider(
             sessions: [session],
             usageRecords: [record],
+            priceBook: PriceBook(storageURL: nil),
             databaseURL: URL(fileURLWithPath: "/tmp/missing-opencode-\(UUID().uuidString).db"),
-            now: now,
-            priceBook: PriceBook(storageURL: nil)
+            now: now
         ).fetchSnapshot()
 
         let breakdown = try XCTUnwrap(snapshot.modelBreakdowns.first)
@@ -191,9 +191,9 @@ final class PricingEstimateTests: XCTestCase {
         let snapshot = try await OpenCodeUsageProvider(
             sessions: [session],
             usageRecords: records,
+            priceBook: PriceBook(storageURL: nil),
             databaseURL: URL(fileURLWithPath: "/tmp/missing-opencode-\(UUID().uuidString).db"),
-            now: now,
-            priceBook: PriceBook(storageURL: nil)
+            now: now
         ).fetchSnapshot()
 
         XCTAssertEqual(snapshot.modelBreakdowns.first?.estimatedCostUSD ?? -1, 1.56, accuracy: 0.000000001)
