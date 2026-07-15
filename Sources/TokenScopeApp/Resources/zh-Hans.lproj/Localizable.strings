@@ -24,6 +24,7 @@
 "Last successful update: %@" = "上次成功更新：%@";
 "Local session logs; not an official subscription quota." = "本地会话日志；并非官方订阅额度。";
 "Quota from OpenAI's official API; local cost is an estimate." = "额度来自 OpenAI 官方 API；本地成本为估算值。";
+"Local OpenCode database; not an official subscription quota." = "本地 OpenCode 数据库；并非官方订阅额度。";
 "Usage Providers" = "用量服务";
 "z.ai API Key" = "z.ai API Key";
 "z.ai Region" = "z.ai 区域";
@@ -82,6 +83,9 @@
 "Cache Create" = "缓存写入";
 "Cache R" = "缓存读";
 "Cache W" = "缓存写";
+"Reasoning" = "推理";
+"OpenCode models" = "OpenCode 模型";
+"OpenCode recorded cost; TokenScope does not re-price it here." = "展示 OpenCode 记录的成本；TokenScope 不在这里重新估价。";
 "Cost (est.)" = "成本（估算）";
 "Calculated from local sessions and built-in prices; not an official bill." = "根据本地会话和内置价格计算，不是官方账单。";
 "Started" = "开始时间";

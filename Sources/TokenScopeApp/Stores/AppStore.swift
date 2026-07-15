@@ -93,7 +93,7 @@ final class AppStore: ObservableObject {
     }
 
     func refreshUsage() async {
-        for provider in [Provider.claudeCode, .codex, .zai] {
+        for provider in [Provider.claudeCode, .codex, .openCode, .zai] {
             await refreshUsage(for: provider)
         }
     }
@@ -117,6 +117,11 @@ final class AppStore: ObservableObject {
                     priceBook: priceBook,
                     accounts: usageSettings.codexAccounts,
                     activeSource: usageSettings.codexActiveSource
+                ).fetchSnapshot()
+            case .openCode:
+                snapshot = try await OpenCodeUsageProvider(
+                    sessions: sessions,
+                    usageRecords: usageRecords
                 ).fetchSnapshot()
             case .zai:
                 let apiKey = usageSettings.loadZaiAPIKey()

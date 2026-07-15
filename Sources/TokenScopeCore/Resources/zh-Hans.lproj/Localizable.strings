@@ -24,8 +24,10 @@
 "Rolling" = "滚动统计";
 "Latest session" = "最近会话";
 "Local sessions" = "本地会话";
+"Local SQLite" = "本地 SQLite";
 "No Claude Code sessions found." = "未找到 Claude Code 会话。";
 "No Claude Code sessions with usage found." = "未找到包含用量的 Claude Code 会话。";
+"No OpenCode sessions with usage found." = "未找到包含用量的 OpenCode 会话。";
 "System account" = "系统账号";
 "OAuth · System account" = "OAuth · 系统账号";
 "OAuth · Added account" = "OAuth · 已添加账号";
