@@ -5,7 +5,7 @@ struct UsageView: View {
     @EnvironmentObject private var store: AppStore
     @State private var now = Date()
 
-    private let providers: [Provider] = [.claudeCode, .codex, .zai]
+    private let providers: [Provider] = [.claudeCode, .codex, .openCode, .zai]
 
     private var lastUpdatedText: String {
         let latest = store.providerUsageSnapshots.values.map(\.updatedAt).max()
@@ -279,6 +279,13 @@ private struct UsageProviderCard: View {
             }
         }
 
+        if provider == .openCode, !snapshot.modelBreakdowns.isEmpty {
+            Rectangle()
+                .fill(Color.secondary.opacity(0.1))
+                .frame(height: 1)
+            OpenCodeModelBreakdownTable(breakdowns: snapshot.modelBreakdowns)
+        }
+
         if let notice = snapshot.notice {
             Text(notice)
                 .font(.callout)
@@ -352,6 +359,8 @@ private struct UsageProviderCard: View {
             return L10n.string("Local session logs; not an official subscription quota.")
         case .codex:
             return L10n.string("Quota from OpenAI's official API; local cost is an estimate.")
+        case .openCode:
+            return L10n.string("Local OpenCode database; not an official subscription quota.")
         default:
             return nil
         }
@@ -367,6 +376,8 @@ private struct UsageProviderCard: View {
             return .orange
         case .codex:
             return Color(red: 0.165, green: 0.616, blue: 0.561)
+        case .openCode:
+            return .indigo
         case .zai:
             return .purple
         default:
@@ -378,11 +389,96 @@ private struct UsageProviderCard: View {
         switch provider {
         case .zai:
             return L10n.string("Configure a z.ai API key in Settings to load usage.")
-        case .claudeCode, .codex:
+        case .claudeCode, .codex, .openCode:
             return L10n.string("No usage data available yet.")
         default:
             return L10n.string("No usage data available.")
         }
+    }
+}
+
+private struct OpenCodeModelBreakdownTable: View {
+    let breakdowns: [ProviderUsageBreakdown]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L10n.string("OpenCode models"))
+                .font(.subheadline).bold()
+            ScrollView(.horizontal, showsIndicators: false) {
+                Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 7) {
+                    GridRow {
+                        header(L10n.string("Model"), width: 180)
+                        header(L10n.string("Sessions"), width: 54, alignment: .trailing)
+                        header(L10n.string("Msgs"), width: 54, alignment: .trailing)
+                        header(L10n.string("Total Tokens"), width: 82, alignment: .trailing)
+                        header(L10n.string("Input"), width: 72, alignment: .trailing)
+                        header(L10n.string("Output"), width: 72, alignment: .trailing)
+                        header(L10n.string("Reasoning"), width: 72, alignment: .trailing)
+                        header(L10n.string("Cache Read"), width: 84, alignment: .trailing)
+                        header(L10n.string("Cache Create"), width: 84, alignment: .trailing)
+                        header(L10n.string("Cost"), width: 70, alignment: .trailing)
+                    }
+                    Divider()
+                        .gridCellColumns(10)
+                    ForEach(breakdowns) { row in
+                        GridRow {
+                            modelCell(row)
+                            metric(String(row.sessionCount), width: 54)
+                            metric(String(row.messageCount), width: 54)
+                            metric(formatTokens(row.totalTokens), width: 82)
+                            metric(formatTokens(row.inputTokens), width: 72)
+                            metric(formatTokens(row.outputTokens), width: 72)
+                            metric(formatTokens(row.reasoningTokens), width: 72)
+                            metric(formatTokens(row.cacheReadTokens), width: 84)
+                            metric(formatTokens(row.cacheCreationTokens), width: 84)
+                            metric(formatCost(row.costUSD), width: 70)
+                        }
+                    }
+                }
+                .font(.caption)
+                .padding(.vertical, 2)
+            }
+            Text(L10n.string("OpenCode recorded cost; TokenScope does not re-price it here."))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func header(_ title: String, width: CGFloat, alignment: Alignment = .leading) -> some View {
+        Text(title)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .frame(width: width, alignment: alignment)
+    }
+
+    private func modelCell(_ row: ProviderUsageBreakdown) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text("\(row.groupName) · \(row.modelID)")
+                .lineLimit(1)
+            Text(row.providerID)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .frame(width: 180, alignment: .leading)
+    }
+
+    private func metric(_ text: String, width: CGFloat) -> some View {
+        Text(text)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(width: width, alignment: .trailing)
+    }
+
+    private func formatTokens(_ value: Int) -> String {
+        TokenDisplayFormatter.usageSummary(value)
+    }
+
+    private func formatCost(_ value: Double) -> String {
+        let digits = value > 0 && value < 0.01 ? 4 : 2
+        return value.formatted(.currency(code: "USD").precision(.fractionLength(digits)))
     }
 }
 

@@ -65,6 +65,52 @@ public struct ProviderUsageCostSnapshot: Codable, Sendable, Hashable {
     }
 }
 
+public struct ProviderUsageBreakdown: Codable, Sendable, Hashable, Identifiable {
+    public var id: String { "\(providerID):\(modelID)" }
+
+    public let groupName: String
+    public let providerID: String
+    public let modelID: String
+    public let sessionCount: Int
+    public let messageCount: Int
+    public let inputTokens: Int
+    public let outputTokens: Int
+    public let reasoningTokens: Int
+    public let cacheReadTokens: Int
+    public let cacheCreationTokens: Int
+    public let costUSD: Double
+
+    public var totalTokens: Int {
+        inputTokens + outputTokens + reasoningTokens + cacheReadTokens + cacheCreationTokens
+    }
+
+    public init(
+        groupName: String,
+        providerID: String,
+        modelID: String,
+        sessionCount: Int,
+        messageCount: Int,
+        inputTokens: Int,
+        outputTokens: Int,
+        reasoningTokens: Int,
+        cacheReadTokens: Int,
+        cacheCreationTokens: Int,
+        costUSD: Double
+    ) {
+        self.groupName = groupName
+        self.providerID = providerID
+        self.modelID = modelID
+        self.sessionCount = sessionCount
+        self.messageCount = messageCount
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.reasoningTokens = reasoningTokens
+        self.cacheReadTokens = cacheReadTokens
+        self.cacheCreationTokens = cacheCreationTokens
+        self.costUSD = costUSD
+    }
+}
+
 public struct ProviderUsageSnapshot: Codable, Sendable, Hashable, Identifiable {
     public var id: Provider { provider }
 
@@ -80,7 +126,25 @@ public struct ProviderUsageSnapshot: Codable, Sendable, Hashable, Identifiable {
     public let windows: [UsageWindowSnapshot]
     public let creditsText: String?
     public let costRows: [ProviderUsageCostSnapshot]
+    public let modelBreakdowns: [ProviderUsageBreakdown]
     public let notice: String?
+
+    enum CodingKeys: String, CodingKey {
+        case provider
+        case updatedAt
+        case sourceLabel
+        case identitySummary
+        case providerAccountFingerprint
+        case planName
+        case accountDisplayName
+        case accountOptions
+        case selectedAccountID
+        case windows
+        case creditsText
+        case costRows
+        case modelBreakdowns
+        case notice
+    }
 
     public init(
         provider: Provider,
@@ -95,6 +159,7 @@ public struct ProviderUsageSnapshot: Codable, Sendable, Hashable, Identifiable {
         windows: [UsageWindowSnapshot] = [],
         creditsText: String? = nil,
         costRows: [ProviderUsageCostSnapshot] = [],
+        modelBreakdowns: [ProviderUsageBreakdown] = [],
         notice: String? = nil
     ) {
         self.provider = provider
@@ -109,7 +174,26 @@ public struct ProviderUsageSnapshot: Codable, Sendable, Hashable, Identifiable {
         self.windows = windows
         self.creditsText = creditsText
         self.costRows = costRows
+        self.modelBreakdowns = modelBreakdowns
         self.notice = notice
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.provider = try container.decode(Provider.self, forKey: .provider)
+        self.updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        self.sourceLabel = try container.decode(String.self, forKey: .sourceLabel)
+        self.identitySummary = try container.decodeIfPresent(String.self, forKey: .identitySummary)
+        self.providerAccountFingerprint = try container.decodeIfPresent(String.self, forKey: .providerAccountFingerprint)
+        self.planName = try container.decodeIfPresent(String.self, forKey: .planName)
+        self.accountDisplayName = try container.decodeIfPresent(String.self, forKey: .accountDisplayName)
+        self.accountOptions = try container.decodeIfPresent([Account].self, forKey: .accountOptions) ?? []
+        self.selectedAccountID = try container.decodeIfPresent(String.self, forKey: .selectedAccountID)
+        self.windows = try container.decodeIfPresent([UsageWindowSnapshot].self, forKey: .windows) ?? []
+        self.creditsText = try container.decodeIfPresent(String.self, forKey: .creditsText)
+        self.costRows = try container.decodeIfPresent([ProviderUsageCostSnapshot].self, forKey: .costRows) ?? []
+        self.modelBreakdowns = try container.decodeIfPresent([ProviderUsageBreakdown].self, forKey: .modelBreakdowns) ?? []
+        self.notice = try container.decodeIfPresent(String.self, forKey: .notice)
     }
 }
 

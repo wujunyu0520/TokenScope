@@ -42,18 +42,18 @@ public struct OpenCodeParser: Sendable {
             guard (obj["role"] as? String) == "assistant" else { continue }
 
             let model = (obj["modelID"] as? String) ?? "unknown"
+            let providerID = obj["providerID"] as? String
             let tokens = obj["tokens"] as? [String: Any]
-            let inputAll = (tokens?["input"] as? Int) ?? 0
+            let input = (tokens?["input"] as? Int) ?? 0
             let output = (tokens?["output"] as? Int) ?? 0
             let reasoning = (tokens?["reasoning"] as? Int) ?? 0
             let cache = tokens?["cache"] as? [String: Any]
             let cacheRead = (cache?["read"] as? Int) ?? 0
             let cacheWrite = (cache?["write"] as? Int) ?? 0
-            let effectiveInput = max(0, inputAll - cacheRead)
             let effectiveOutput = output + reasoning
 
             let usage = TokenUsage(
-                inputTokens: effectiveInput,
+                inputTokens: input,
                 outputTokens: effectiveOutput,
                 cacheCreationTokens: cacheWrite,
                 cacheReadTokens: cacheRead
@@ -76,7 +76,7 @@ public struct OpenCodeParser: Sendable {
                 sessionId: sessionId,
                 messageIndex: messageIndex,
                 provider: .openCode,
-                accountId: nil,
+                accountId: providerID,
                 model: model,
                 timestamp: ts,
                 usage: usage
@@ -112,15 +112,24 @@ public struct OpenCodeScanner: Sendable {
             self.storageRoot = storageRoot
         } else {
             let home = FileManager.default.homeDirectoryForCurrentUser
-            self.storageRoot = home.appendingPathComponent(".local/share/opencode/storage", isDirectory: true)
+            self.storageRoot = home.appendingPathComponent(".local/share/opencode", isDirectory: true)
         }
         self.parser = parser
     }
 
     public func scan() -> [OpenCodeParseResult] {
+        let databaseURL = storageRoot.appendingPathComponent("opencode.db")
+        if FileManager.default.fileExists(atPath: databaseURL.path),
+           let results = try? OpenCodeSQLiteParser().parse(databaseURL: databaseURL) {
+            return results
+        }
+
+        let legacyStorageRoot = storageRoot.lastPathComponent == "storage"
+            ? storageRoot
+            : storageRoot.appendingPathComponent("storage", isDirectory: true)
         let fm = FileManager.default
-        let sessionRoot = storageRoot.appendingPathComponent("session", isDirectory: true)
-        let messageRoot = storageRoot.appendingPathComponent("message", isDirectory: true)
+        let sessionRoot = legacyStorageRoot.appendingPathComponent("session", isDirectory: true)
+        let messageRoot = legacyStorageRoot.appendingPathComponent("message", isDirectory: true)
         guard fm.fileExists(atPath: sessionRoot.path) else { return [] }
 
         var results: [OpenCodeParseResult] = []
