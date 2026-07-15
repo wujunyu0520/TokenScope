@@ -120,17 +120,20 @@ public struct OpenCodeUsageProvider: UsageStatsProvider {
 
     private let sessions: [SessionRecord]
     private let usageRecords: [UsageRecord]
+    private let priceBook: PriceBook
     private let databaseURL: URL?
     private let now: Date
 
     public init(
         sessions: [SessionRecord],
         usageRecords: [UsageRecord],
+        priceBook: PriceBook = PriceBook(),
         databaseURL: URL? = OpenCodeSQLiteParser.defaultDatabaseURL,
         now: Date = Date()
     ) {
         self.sessions = sessions.filter { $0.provider == .openCode }
         self.usageRecords = usageRecords.filter { $0.provider == .openCode }
+        self.priceBook = priceBook
         self.databaseURL = databaseURL
         self.now = now
     }
@@ -244,35 +247,73 @@ public struct OpenCodeUsageProvider: UsageStatsProvider {
            FileManager.default.fileExists(atPath: databaseURL.path),
            let breakdowns = try? OpenCodeSQLiteParser().modelBreakdowns(databaseURL: databaseURL),
            !breakdowns.isEmpty {
+            let costsByModel = breakdownCosts(from: validRecords)
             return breakdowns
+                .map { repricedBreakdown($0, costsByModel: costsByModel) }
+                .sorted(by: sortBreakdowns)
         }
         return deriveModelBreakdowns(from: validRecords)
     }
 
+    private struct BreakdownCost {
+        var estimatedUSD = 0.0
+        var coverage: PricingCoverage?
+
+        mutating func add(_ estimate: CostEstimate) {
+            estimatedUSD += estimate.estimatedUSD
+            switch (coverage, estimate.coverage) {
+            case (_, .unpriced):
+                coverage = .unpriced
+            case (.unpriced, _):
+                break
+            case (.priced, _), (_, .priced):
+                coverage = .priced
+            case (_, .free):
+                coverage = .free
+            }
+        }
+    }
+
+    private func breakdownCosts(from records: [UsageRecord]) -> [String: BreakdownCost] {
+        var costs: [String: BreakdownCost] = [:]
+        for record in records where record.usage.totalTokens > 0 {
+            let key = breakdownKey(providerID: record.accountId ?? "unknown", modelID: record.model)
+            var cost = costs[key, default: BreakdownCost()]
+            cost.add(priceBook.estimate(for: record))
+            costs[key] = cost
+        }
+        return costs
+    }
+
     private func deriveModelBreakdowns(from records: [UsageRecord]) -> [ProviderUsageBreakdown] {
         struct Accumulator {
+            var providerID = "unknown"
+            var modelID = "unknown"
             var sessionIDs: Set<String> = []
             var messageCount = 0
             var usage = TokenUsage.zero
+            var cost = BreakdownCost()
         }
 
         var accumulators: [String: Accumulator] = [:]
         for record in records where record.usage.totalTokens > 0 {
             let providerID = record.accountId ?? "unknown"
-            let key = "\(providerID)\u{1f}\(record.model)"
-            accumulators[key, default: Accumulator()].sessionIDs.insert(record.sessionId)
-            accumulators[key]?.messageCount += 1
-            accumulators[key]?.usage += record.usage
+            let key = breakdownKey(providerID: providerID, modelID: record.model)
+            var accumulator = accumulators[key, default: Accumulator()]
+            accumulator.providerID = providerID
+            accumulator.modelID = record.model
+            accumulator.sessionIDs.insert(record.sessionId)
+            accumulator.messageCount += 1
+            accumulator.usage += record.usage
+            accumulator.cost.add(priceBook.estimate(for: record))
+            accumulators[key] = accumulator
         }
 
-        return accumulators.map { key, value in
-            let parts = key.split(separator: "\u{1f}", maxSplits: 1).map(String.init)
-            let providerID = parts.first ?? "unknown"
-            let modelID = parts.count > 1 ? parts[1] : "unknown"
+        return accumulators.map { _, value in
             return ProviderUsageBreakdown(
-                groupName: groupName(for: providerID),
-                providerID: providerID,
-                modelID: modelID,
+                groupName: groupName(for: value.providerID),
+                providerID: value.providerID,
+                modelID: value.modelID,
                 sessionCount: value.sessionIDs.count,
                 messageCount: value.messageCount,
                 inputTokens: value.usage.inputTokens,
@@ -280,10 +321,38 @@ public struct OpenCodeUsageProvider: UsageStatsProvider {
                 reasoningTokens: 0,
                 cacheReadTokens: value.usage.cacheReadTokens,
                 cacheCreationTokens: value.usage.cacheCreationTokens,
-                costUSD: 0
+                estimatedCostUSD: value.cost.estimatedUSD,
+                pricingCoverage: value.cost.coverage ?? .unpriced
             )
         }
         .sorted(by: sortBreakdowns)
+    }
+
+    private func repricedBreakdown(
+        _ breakdown: ProviderUsageBreakdown,
+        costsByModel: [String: BreakdownCost]
+    ) -> ProviderUsageBreakdown {
+        let cost = costsByModel[
+            breakdownKey(providerID: breakdown.providerID, modelID: breakdown.modelID)
+        ] ?? BreakdownCost()
+        return ProviderUsageBreakdown(
+            groupName: breakdown.groupName,
+            providerID: breakdown.providerID,
+            modelID: breakdown.modelID,
+            sessionCount: breakdown.sessionCount,
+            messageCount: breakdown.messageCount,
+            inputTokens: breakdown.inputTokens,
+            outputTokens: breakdown.outputTokens,
+            reasoningTokens: breakdown.reasoningTokens,
+            cacheReadTokens: breakdown.cacheReadTokens,
+            cacheCreationTokens: breakdown.cacheCreationTokens,
+            estimatedCostUSD: cost.estimatedUSD,
+            pricingCoverage: cost.coverage ?? .unpriced
+        )
+    }
+
+    private func breakdownKey(providerID: String, modelID: String) -> String {
+        "\(providerID.lowercased())\u{1f}\(modelID.lowercased())"
     }
 
     private func sortBreakdowns(_ lhs: ProviderUsageBreakdown, _ rhs: ProviderUsageBreakdown) -> Bool {
@@ -400,19 +469,29 @@ public struct CodexUsageProvider: UsageStatsProvider {
         let todayStart = calendar.startOfDay(for: now)
         let todayEnd = calendar.date(byAdding: .day, value: 1, to: todayStart) ?? now
         let last30Start = calendar.date(byAdding: .day, value: -29, to: todayStart) ?? todayStart
-        let todayTotals = aggregator.totals(records: filtered, filter: AggregationFilter(dateRange: todayStart...todayEnd))
-        let last30Totals = aggregator.totals(records: filtered, filter: AggregationFilter(dateRange: last30Start...todayEnd))
+        let todayTotals = aggregator.costSummary(
+            records: filtered,
+            filter: AggregationFilter(dateRange: todayStart...todayEnd)
+        )
+        let last30Totals = aggregator.costSummary(
+            records: filtered,
+            filter: AggregationFilter(dateRange: last30Start...todayEnd)
+        )
 
         return [
             ProviderUsageCostSnapshot(
                 title: CoreL10n.string("Today"),
                 amountText: currency(todayTotals.costUSD),
-                detailText: tokenCount(todayTotals.usage.totalTokens)
+                detailText: tokenCount(todayTotals.usage.totalTokens),
+                unpricedRecordCount: todayTotals.pricingCoverage.unpricedRecordCount,
+                unpricedModels: todayTotals.pricingCoverage.unpricedModels
             ),
             ProviderUsageCostSnapshot(
                 title: CoreL10n.string("Last 30 days"),
                 amountText: currency(last30Totals.costUSD),
-                detailText: tokenCount(last30Totals.usage.totalTokens)
+                detailText: tokenCount(last30Totals.usage.totalTokens),
+                unpricedRecordCount: last30Totals.pricingCoverage.unpricedRecordCount,
+                unpricedModels: last30Totals.pricingCoverage.unpricedModels
             ),
         ]
     }

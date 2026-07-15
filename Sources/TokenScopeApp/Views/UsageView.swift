@@ -257,7 +257,7 @@ private struct UsageProviderCard: View {
                 .fill(Color.secondary.opacity(0.1))
                 .frame(height: 1)
             VStack(alignment: .leading, spacing: 6) {
-                Text(L10n.string("Cost (est.)"))
+                Text(L10n.string("API cost estimate"))
                     .font(.subheadline).bold()
                 ForEach(Array(snapshot.costRows.enumerated()), id: \.offset) { _, row in
                     HStack(alignment: .firstTextBaseline) {
@@ -272,8 +272,21 @@ private struct UsageProviderCard: View {
                         }
                     }
                     .font(.caption)
+                    if row.unpricedRecordCount > 0 {
+                        Label(
+                            L10n.string(
+                                "%d records are excluded from cost because %d models are unpriced: %@",
+                                row.unpricedRecordCount,
+                                row.unpricedModels.count,
+                                row.unpricedModels.joined(separator: ", ")
+                            ),
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                    }
                 }
-                Text(L10n.string("Calculated from local sessions and built-in prices; not an official bill."))
+                Text(L10n.string("Estimated from local sessions at current official API list prices; not an actual bill."))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -416,7 +429,7 @@ private struct OpenCodeModelBreakdownTable: View {
                         header(L10n.string("Reasoning"), width: 72, alignment: .trailing)
                         header(L10n.string("Cache Read"), width: 84, alignment: .trailing)
                         header(L10n.string("Cache Create"), width: 84, alignment: .trailing)
-                        header(L10n.string("Cost"), width: 70, alignment: .trailing)
+                        header(L10n.string("API est."), width: 76, alignment: .trailing)
                     }
                     Divider()
                         .gridCellColumns(10)
@@ -431,16 +444,28 @@ private struct OpenCodeModelBreakdownTable: View {
                             metric(formatTokens(row.reasoningTokens), width: 72)
                             metric(formatTokens(row.cacheReadTokens), width: 84)
                             metric(formatTokens(row.cacheCreationTokens), width: 84)
-                            metric(formatCost(row.costUSD), width: 70)
+                            metric(costText(row), width: 76)
                         }
                     }
                 }
                 .font(.caption)
                 .padding(.vertical, 2)
             }
-            Text(L10n.string("OpenCode recorded cost; TokenScope does not re-price it here."))
+            Text(L10n.string("Estimated at current official API list prices; subscription plans and discounts are not included."))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+            let unpriced = breakdowns.filter { $0.pricingCoverage == .unpriced }
+            if !unpriced.isEmpty {
+                Label(
+                    L10n.string(
+                        "Unpriced models are excluded: %@",
+                        unpriced.map(\.modelID).sorted().joined(separator: ", ")
+                    ),
+                    systemImage: "exclamationmark.triangle"
+                )
+                .font(.caption2)
+                .foregroundStyle(.orange)
+            }
         }
     }
 
@@ -479,6 +504,15 @@ private struct OpenCodeModelBreakdownTable: View {
     private func formatCost(_ value: Double) -> String {
         let digits = value > 0 && value < 0.01 ? 4 : 2
         return value.formatted(.currency(code: "USD").precision(.fractionLength(digits)))
+    }
+
+    private func costText(_ row: ProviderUsageBreakdown) -> String {
+        switch row.pricingCoverage {
+        case .priced, .free:
+            return formatCost(row.estimatedCostUSD)
+        case .unpriced:
+            return L10n.string("Unpriced")
+        }
     }
 }
 

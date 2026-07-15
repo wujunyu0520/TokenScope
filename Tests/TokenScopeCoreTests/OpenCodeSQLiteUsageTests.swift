@@ -112,7 +112,8 @@ final class OpenCodeSQLiteUsageTests: XCTestCase {
         XCTAssertEqual(snapshot.modelBreakdowns[0].outputTokens, 200)
         XCTAssertEqual(snapshot.modelBreakdowns[0].reasoningTokens, 30)
         XCTAssertEqual(snapshot.modelBreakdowns[0].cacheReadTokens, 700)
-        XCTAssertEqual(snapshot.modelBreakdowns[0].costUSD, 0.12)
+        XCTAssertEqual(snapshot.modelBreakdowns[0].pricingCoverage, .priced)
+        XCTAssertEqual(snapshot.modelBreakdowns[0].estimatedCostUSD, 0.001469, accuracy: 0.000000001)
     }
 
     private func makeOpenCodeRoot() throws -> URL {

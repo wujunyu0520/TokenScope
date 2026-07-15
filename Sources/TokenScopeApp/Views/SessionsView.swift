@@ -14,6 +14,22 @@ private struct SessionRow: Identifiable, Hashable {
     let outputTokens: Int
     let cacheReadTokens: Int
     let cost: Double
+    let unpricedModels: [String]
+
+    var costText: String {
+        guard !unpricedModels.isEmpty else { return String(format: "$%.4f", cost) }
+        return cost > 0 ? String(format: "$%.4f*", cost) : L10n.string("Unpriced")
+    }
+
+    var costHelpText: String {
+        guard !unpricedModels.isEmpty else {
+            return L10n.string("Estimated at current official API list prices.")
+        }
+        return L10n.string(
+            "Partial estimate; unpriced models: %@",
+            unpricedModels.joined(separator: ", ")
+        )
+    }
 }
 
 struct SessionsView: View {
@@ -93,10 +109,11 @@ struct SessionsView: View {
                     .onTapGesture(count: 2) { openDetail(for: r) }
             }
             TableColumn(L10n.string("Cost"), value: \.cost) { r in
-                Text(String(format: "$%.4f", r.cost))
+                Text(r.costText)
                     .monospacedDigit()
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { openDetail(for: r) }
+                    .help(r.costHelpText)
             }
         }
         .overlay {
@@ -128,16 +145,43 @@ struct SessionsView: View {
         }
         .onAppear { rebuild() }
         .onChange(of: store.sessions) { _, _ in rebuild() }
+        .onChange(of: store.usageRecords.count) { _, _ in rebuild() }
+        .onChange(of: store.pricesRevision) { _, _ in rebuild() }
     }
 
     private func rebuild() {
         var seen = Set<String>()
         var out: [SessionRow] = []
+        let recordsBySession = Dictionary(grouping: store.usageRecords) {
+            "\($0.provider.rawValue):\($0.sessionId)"
+        }
         for s in store.sessions {
             let uid = "\(s.provider.rawValue):\(s.id)"
             if seen.contains(uid) { continue }
             seen.insert(uid)
-            let model = s.modelsUsed.first ?? ""
+            let records = recordsBySession[uid] ?? []
+            let costSummary: CostAggregationSummary = {
+                if !records.isEmpty {
+                    return store.aggregator.costSummary(records: records)
+                }
+                guard let model = s.modelsUsed.first, s.totalUsage.totalTokens > 0 else {
+                    return CostAggregationSummary(
+                        usage: s.totalUsage,
+                        costUSD: 0,
+                        pricingCoverage: PricingCoverageSummary()
+                    )
+                }
+                let fallback = UsageRecord(
+                    sessionId: s.id,
+                    messageIndex: 0,
+                    provider: s.provider,
+                    accountId: s.accountId,
+                    model: model,
+                    timestamp: s.endedAt,
+                    usage: s.totalUsage
+                )
+                return store.aggregator.costSummary(records: [fallback])
+            }()
             let projectName: String = {
                 if s.id.hasPrefix("subagent:"), let last = s.projectPath?.components(separatedBy: "/").last {
                     return "\(last) · subagent"
@@ -156,7 +200,8 @@ struct SessionsView: View {
                 inputTokens: s.totalUsage.inputTokens,
                 outputTokens: s.totalUsage.outputTokens,
                 cacheReadTokens: s.totalUsage.cacheReadTokens,
-                cost: store.priceBook.cost(for: s.totalUsage, model: model)
+                cost: costSummary.costUSD,
+                unpricedModels: costSummary.pricingCoverage.unpricedModels
             ))
         }
         rows = out

@@ -26,11 +26,61 @@ final class AppStore: ObservableObject {
     func upsertPrice(_ price: ModelPrice) {
         priceBook.upsert(price)
         pricesRevision &+= 1
+        repriceVisibleSnapshots()
     }
 
-    func removePrice(model: String) {
-        priceBook.remove(modelName: model)
+    func removePrice(vendor: PricingVendor, model: String) {
+        priceBook.remove(vendor: vendor, modelName: model)
         pricesRevision &+= 1
+        repriceVisibleSnapshots()
+    }
+
+    private func repriceVisibleSnapshots() {
+        if let snapshot = providerUsageSnapshots[.codex] {
+            let records = usageRecords.filter { $0.provider == .codex }
+            providerUsageSnapshots[.codex] = snapshot.replacingCostRows(localCostRows(records: records))
+            saveProviderUsageCache()
+        }
+
+        Task { await refreshUsage(for: .openCode) }
+    }
+
+    private func localCostRows(records: [UsageRecord]) -> [ProviderUsageCostSnapshot] {
+        guard !records.isEmpty else { return [] }
+        let calendar = Calendar.current
+        let todayStart = calendar.startOfDay(for: Date())
+        let todayEnd = calendar.date(byAdding: .day, value: 1, to: todayStart) ?? Date()
+        let last30Start = calendar.date(byAdding: .day, value: -29, to: todayStart) ?? todayStart
+        let today = aggregator.costSummary(
+            records: records,
+            filter: AggregationFilter(dateRange: todayStart...todayEnd)
+        )
+        let last30 = aggregator.costSummary(
+            records: records,
+            filter: AggregationFilter(dateRange: last30Start...todayEnd)
+        )
+        return [
+            ProviderUsageCostSnapshot(
+                title: L10n.string("Today"),
+                amountText: String(format: "$%.2f", today.costUSD),
+                detailText: TokenDisplayFormatter.usageSummary(today.usage.totalTokens),
+                unpricedRecordCount: today.pricingCoverage.unpricedRecordCount,
+                unpricedModels: today.pricingCoverage.unpricedModels
+            ),
+            ProviderUsageCostSnapshot(
+                title: L10n.string("Last 30 Days"),
+                amountText: String(format: "$%.2f", last30.costUSD),
+                detailText: TokenDisplayFormatter.usageSummary(last30.usage.totalTokens),
+                unpricedRecordCount: last30.pricingCoverage.unpricedRecordCount,
+                unpricedModels: last30.pricingCoverage.unpricedModels
+            ),
+        ]
+    }
+
+    private func saveProviderUsageCache() {
+        providerUsageCache.save(
+            snapshots: providerUsageSnapshots.values.sorted { $0.provider.rawValue < $1.provider.rawValue }
+        )
     }
 
     func loadCached() {
@@ -121,7 +171,8 @@ final class AppStore: ObservableObject {
             case .openCode:
                 snapshot = try await OpenCodeUsageProvider(
                     sessions: sessions,
-                    usageRecords: usageRecords
+                    usageRecords: usageRecords,
+                    priceBook: priceBook
                 ).fetchSnapshot()
             case .zai:
                 let apiKey = usageSettings.loadZaiAPIKey()
@@ -137,7 +188,7 @@ final class AppStore: ObservableObject {
             providerUsageSnapshots[provider] = snapshot
             usageRefreshStates[provider] = .loaded
             usageErrors[provider] = nil
-            providerUsageCache.save(snapshots: providerUsageSnapshots.values.sorted { $0.provider.rawValue < $1.provider.rawValue })
+            saveProviderUsageCache()
         } catch {
             usageRefreshStates[provider] = .failed
             usageErrors[provider] = error.localizedDescription

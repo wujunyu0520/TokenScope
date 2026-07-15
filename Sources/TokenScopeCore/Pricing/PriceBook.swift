@@ -10,8 +10,8 @@ public final class PriceBook: @unchecked Sendable {
         userOverrides: [ModelPrice] = [],
         storageURL: URL? = PriceBook.defaultStorageURL
     ) {
-        self.builtin = Dictionary(uniqueKeysWithValues: builtin.map { ($0.model, $0) })
-        self.userOverrides = Dictionary(uniqueKeysWithValues: userOverrides.map { ($0.model, $0) })
+        self.builtin = Dictionary(uniqueKeysWithValues: builtin.map { (Self.storageKey(for: $0), $0) })
+        self.userOverrides = Dictionary(uniqueKeysWithValues: userOverrides.map { (Self.storageKey(for: $0), $0) })
         self.storageURL = storageURL
         if userOverrides.isEmpty {
             loadFromDisk()
@@ -26,32 +26,79 @@ public final class PriceBook: @unchecked Sendable {
             .appendingPathComponent("user_prices.json")
     }
 
+    public func price(for key: PricingKey) -> ModelPrice? {
+        findPrice(in: userOverrides.values, key: key)
+            ?? findPrice(in: builtin.values, key: key)
+    }
+
     public func price(forModel model: String) -> ModelPrice? {
-        if let override = userOverrides[model] { return override }
-        if let exact = builtin[model] { return exact }
-        let candidates = builtin.values.filter { model.hasPrefix($0.model) }
-        return candidates.max(by: { $0.model.count < $1.model.count })
+        let matches = PricingVendor.allCases.compactMap { vendor in
+            price(for: PricingKey(
+                sourceProvider: vendor.legacyProvider,
+                upstreamProviderID: vendor.rawValue,
+                modelID: model
+            ))
+        }
+        let unique = Dictionary(uniqueKeysWithValues: matches.map { ($0.id, $0) })
+        return unique.count == 1 ? unique.values.first : nil
+    }
+
+    public func estimate(for record: UsageRecord) -> CostEstimate {
+        estimate(for: record.usage, key: PricingKey(record: record))
+    }
+
+    public func estimate(for usage: TokenUsage, key: PricingKey) -> CostEstimate {
+        guard let price = price(for: key) else {
+            return CostEstimate(
+                estimatedUSD: 0,
+                coverage: .unpriced,
+                canonicalModel: nil,
+                vendor: key.vendor,
+                sourceURL: nil,
+                verifiedOn: nil
+            )
+        }
+
+        return CostEstimate(
+            estimatedUSD: price.cost(for: usage),
+            coverage: price.isFree ? .free : .priced,
+            canonicalModel: price.model,
+            vendor: price.vendor,
+            sourceURL: price.sourceURL,
+            verifiedOn: price.verifiedOn
+        )
     }
 
     @discardableResult
     public func upsert(_ price: ModelPrice) -> ModelPrice {
         let stored = ModelPrice(
             provider: price.provider,
+            vendor: price.vendor,
             model: price.model,
+            aliases: price.aliases,
             inputPerMillion: price.inputPerMillion,
             outputPerMillion: price.outputPerMillion,
             cacheReadPerMillion: price.cacheReadPerMillion,
             cacheCreationPerMillion: price.cacheCreationPerMillion,
             currency: price.currency,
-            source: .user
+            source: .user,
+            sourceURL: price.sourceURL,
+            verifiedOn: price.verifiedOn,
+            isFree: price.isFree,
+            rule: price.rule
         )
-        userOverrides[stored.model] = stored
+        userOverrides[Self.storageKey(for: stored)] = stored
         saveToDisk()
         return stored
     }
 
+    public func remove(vendor: PricingVendor, modelName: String) {
+        userOverrides.removeValue(forKey: Self.storageKey(vendor: vendor, model: modelName))
+        saveToDisk()
+    }
+
     public func remove(modelName: String) {
-        userOverrides.removeValue(forKey: modelName)
+        userOverrides = userOverrides.filter { $0.value.model != modelName }
         saveToDisk()
     }
 
@@ -60,8 +107,12 @@ public final class PriceBook: @unchecked Sendable {
         saveToDisk()
     }
 
+    public func isUserOverride(vendor: PricingVendor, model: String) -> Bool {
+        userOverrides[Self.storageKey(vendor: vendor, model: model)] != nil
+    }
+
     public func isUserOverride(model: String) -> Bool {
-        userOverrides[model] != nil
+        userOverrides.values.contains { $0.model == model }
     }
 
     public func cost(for usage: TokenUsage, model: String) -> Double {
@@ -70,36 +121,93 @@ public final class PriceBook: @unchecked Sendable {
 
     public func listAll() -> [ModelPrice] {
         var merged = builtin
-        for (k, v) in userOverrides { merged[k] = v }
+        for (key, value) in userOverrides { merged[key] = value }
         return merged.values.sorted { lhs, rhs in
-            if lhs.provider != rhs.provider {
-                return lhs.provider.rawValue < rhs.provider.rawValue
+            if lhs.vendor != rhs.vendor {
+                return lhs.vendor.rawValue < rhs.vendor.rawValue
             }
             return lhs.model < rhs.model
         }
     }
 
     public func listUserOverrides() -> [ModelPrice] {
-        userOverrides.values.sorted { $0.model < $1.model }
+        userOverrides.values.sorted {
+            if $0.vendor != $1.vendor { return $0.vendor.rawValue < $1.vendor.rawValue }
+            return $0.model < $1.model
+        }
     }
 
-    // MARK: - Persistence
+    private func findPrice(
+        in prices: Dictionary<String, ModelPrice>.Values,
+        key: PricingKey
+    ) -> ModelPrice? {
+        let normalizedModel = Self.normalize(key.modelID)
+        let vendorPrices = prices.filter { $0.vendor == key.vendor }
+
+        if let exact = vendorPrices.first(where: { Self.normalize($0.model) == normalizedModel }) {
+            return exact
+        }
+        if let alias = vendorPrices.first(where: { price in
+            price.aliases.contains { Self.normalize($0) == normalizedModel }
+        }) {
+            return alias
+        }
+        return vendorPrices.first { price in
+            Self.isApprovedSnapshot(model: normalizedModel, canonicalModel: Self.normalize(price.model))
+                || price.aliases.contains {
+                    Self.isApprovedSnapshot(model: normalizedModel, canonicalModel: Self.normalize($0))
+                }
+        }
+    }
+
+    private static func isApprovedSnapshot(model: String, canonicalModel: String) -> Bool {
+        if model.hasPrefix(canonicalModel + "[") && model.hasSuffix("]") {
+            return true
+        }
+        guard model.hasPrefix(canonicalModel + "-") else { return false }
+        let suffix = String(model.dropFirst(canonicalModel.count + 1))
+        if suffix.count == 8, suffix.allSatisfy(\.isNumber) { return true }
+        let parts = suffix.split(separator: "-")
+        return parts.count == 3
+            && parts[0].count == 4
+            && parts[1].count == 2
+            && parts[2].count == 2
+            && parts.joined().allSatisfy(\.isNumber)
+    }
+
+    private static func normalize(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private static func storageKey(for price: ModelPrice) -> String {
+        storageKey(vendor: price.vendor, model: price.model)
+    }
+
+    private static func storageKey(vendor: PricingVendor, model: String) -> String {
+        "\(vendor.rawValue):\(normalize(model))"
+    }
 
     private func loadFromDisk() {
         guard let url = storageURL,
               let data = try? Data(contentsOf: url),
               let items = try? JSONDecoder().decode([ModelPrice].self, from: data)
         else { return }
-        for p in items {
-            userOverrides[p.model] = ModelPrice(
-                provider: p.provider,
-                model: p.model,
-                inputPerMillion: p.inputPerMillion,
-                outputPerMillion: p.outputPerMillion,
-                cacheReadPerMillion: p.cacheReadPerMillion,
-                cacheCreationPerMillion: p.cacheCreationPerMillion,
-                currency: p.currency,
-                source: .user
+        for price in items {
+            userOverrides[Self.storageKey(for: price)] = ModelPrice(
+                provider: price.provider,
+                vendor: price.vendor,
+                model: price.model,
+                aliases: price.aliases,
+                inputPerMillion: price.inputPerMillion,
+                outputPerMillion: price.outputPerMillion,
+                cacheReadPerMillion: price.cacheReadPerMillion,
+                cacheCreationPerMillion: price.cacheCreationPerMillion,
+                currency: price.currency,
+                source: .user,
+                sourceURL: price.sourceURL,
+                verifiedOn: price.verifiedOn,
+                isFree: price.isFree,
+                rule: price.rule
             )
         }
     }

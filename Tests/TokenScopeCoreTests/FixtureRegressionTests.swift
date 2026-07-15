@@ -79,12 +79,12 @@ final class FixtureRegressionTests: XCTestCase {
         let fixture = try fixtureURL("provider-cache-v1", extension: "json")
 
         XCTAssertNil(ProviderUsageCache(storageURL: fixture).load())
-        XCTAssertEqual(ProviderUsageCacheSnapshot.currentVersion, 2)
+        XCTAssertEqual(ProviderUsageCacheSnapshot.currentVersion, 3)
     }
 
-    func testProviderCacheVersionTwoRoundTripsWithoutSchemaChange() throws {
+    func testProviderCacheVersionThreeRoundTripsWithoutSchemaChange() throws {
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("provider-cache-v2-\(UUID().uuidString).json")
+            .appendingPathComponent("provider-cache-v3-\(UUID().uuidString).json")
         defer { try? FileManager.default.removeItem(at: url) }
 
         let snapshot = ProviderUsageSnapshot(
@@ -112,7 +112,7 @@ final class FixtureRegressionTests: XCTestCase {
         cache.save(snapshots: [snapshot])
 
         let loaded = try XCTUnwrap(cache.load())
-        XCTAssertEqual(loaded.version, 2)
+        XCTAssertEqual(loaded.version, 3)
         XCTAssertEqual(loaded.snapshots, [snapshot])
     }
 
